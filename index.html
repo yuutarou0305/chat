@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>チャットアプリ</title>
+    <title>ローカルチャット</title>
     <style>
         * {
             margin: 0;
@@ -41,34 +41,6 @@
             min-width: 300px;
         }
         
-        .name-input-modal h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-        
-        #usernameInput {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        
-        #nameSubmitButton {
-            padding: 10px 30px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        
-        #nameSubmitButton:hover {
-            background-color: #0056b3;
-        }
-        
         .main-container {
             flex: 1;
             display: none;
@@ -83,14 +55,6 @@
             color: white;
             padding: 20px;
             overflow-y: auto;
-        }
-        
-        .user-list-header {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #34495e;
         }
         
         .user-item {
@@ -115,7 +79,6 @@
             display: flex;
             flex-direction: column;
             background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         
         .chat-header {
@@ -123,29 +86,6 @@
             color: white;
             padding: 15px;
             text-align: center;
-        }
-        
-        .connection-status {
-            font-size: 12px;
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-        
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-        
-        .status-indicator.connected {
-            background-color: #2ecc71;
-        }
-        
-        .status-indicator.disconnected {
-            background-color: #e74c3c;
         }
         
         .chat-messages {
@@ -180,17 +120,6 @@
         .message.received {
             background-color: #e9ecef;
             color: #333;
-            cursor: pointer;
-        }
-        
-        .message.received.read {
-            opacity: 0.7;
-        }
-        
-        .read-indicator {
-            font-size: 10px;
-            color: #6c757d;
-            margin-top: 5px;
         }
         
         .message.system {
@@ -210,7 +139,7 @@
             gap: 10px;
         }
         
-        #messageInput {
+        input[type="text"] {
             flex: 1;
             padding: 10px 15px;
             border: 1px solid #ddd;
@@ -219,7 +148,7 @@
             font-size: 16px;
         }
         
-        #sendButton {
+        button {
             padding: 10px 20px;
             background-color: #007bff;
             color: white;
@@ -229,7 +158,7 @@
             font-size: 16px;
         }
         
-        #sendButton:hover {
+        button:hover {
             background-color: #0056b3;
         }
         
@@ -248,31 +177,28 @@
             font-size: 14px;
         }
         
-        .action-button:hover {
-            background-color: #218838;
-        }
-        
         .action-button.call {
             background-color: #17a2b8;
-        }
-        
-        .action-button.call:hover {
-            background-color: #138496;
         }
         
         .action-button.settings {
             background-color: #6c757d;
         }
         
-        .action-button.settings:hover {
-            background-color: #545b62;
+        .demo-user-buttons {
+            margin-top: 20px;
+            text-align: center;
         }
         
-        .empty-state {
-            text-align: center;
-            color: #6c757d;
-            margin-top: 50px;
-            font-style: italic;
+        .demo-button {
+            padding: 5px 10px;
+            margin: 2px;
+            background-color: #ffc107;
+            color: #212529;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -281,48 +207,50 @@
         <div class="name-input-modal">
             <h2>お名前を入力してください</h2>
             <input type="text" id="usernameInput" placeholder="名前を入力..." autofocus>
-            <button id="nameSubmitButton" onclick="startChat()">チャットを開始</button>
+            <button onclick="startChat()">チャットを開始</button>
         </div>
     </div>
     
     <div class="main-container" id="mainContainer">
         <div class="user-list-container">
-            <div class="user-list-header">オンラインユーザー</div>
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #34495e;">
+                オンラインユーザー
+            </div>
             <div id="userList"></div>
+            
+            <div class="demo-user-buttons">
+                <div style="color: #bdc3c7; font-size: 12px; margin-bottom: 10px;">デモ用ユーザー</div>
+                <button class="demo-button" onclick="addDemoUser('太郎')">太郎を追加</button>
+                <button class="demo-button" onclick="addDemoUser('花子')">花子を追加</button>
+                <button class="demo-button" onclick="addDemoUser('健太')">健太を追加</button>
+                <br>
+                <button class="demo-button" onclick="simulateMessage()">デモメッセージ</button>
+            </div>
         </div>
         
         <div class="chat-container">
             <div class="chat-header">
-                <h1>チャット</h1>
-                <div class="connection-status">
-                    <span class="status-indicator" id="statusIndicator"></span>
-                    <span id="connectionStatus">接続中...</span>
+                <h1>ローカルチャット</h1>
+                <div style="font-size: 12px; margin-top: 5px;">
+                    デモ版 - 実際のユーザー間通信は音声通話アプリをご利用ください
                 </div>
             </div>
-            <div class="chat-messages" id="chatMessages">
-                <div class="empty-state">
-                    サーバーに接続中です...<br>
-                    メッセージを入力してテストすることもできます。
-                </div>
-            </div>
+            <div class="chat-messages" id="chatMessages"></div>
             <div class="chat-input-container">
                 <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="if(event.key==='Enter')sendMessage()">
                 <div class="action-buttons">
-                    <button class="action-button call" onclick="startCall()">通話</button>
+                    <button class="action-button call" onclick="openVoiceChat()">音声通話</button>
                     <button class="action-button" onclick="sendFile()">ファイル</button>
                     <button class="action-button settings" onclick="openSettings()">設定</button>
-                    <button id="sendButton" onclick="sendMessage()">送信</button>
+                    <button onclick="sendMessage()">送信</button>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
-        let ws = null;
         let currentUsername = '';
-        let myUserId = null;
         let users = new Map();
-        let isConnected = false;
         let messages = [];
         
         function startChat() {
@@ -333,124 +261,26 @@
                 currentUsername = name;
                 document.getElementById('nameInputOverlay').style.display = 'none';
                 document.getElementById('mainContainer').style.display = 'flex';
-                connectWebSocket();
+                
+                updateUserList();
+                addSystemMessage(`${currentUsername}さん、ローカルチャットへようこそ！`);
+                addSystemMessage('左側のボタンでデモユーザーを追加できます。');
             }
         }
         
-        function connectWebSocket() {
-            // 既存のサーバー（3001ポート）に接続を試みる
-            try {
-                ws = new WebSocket('ws://localhost:3001');
-                
-                ws.onopen = () => {
-                    isConnected = true;
-                    updateConnectionStatus(true);
-                    
-                    // サーバーに参加を通知
-                    ws.send(JSON.stringify({
-                        type: 'join',
-                        username: currentUsername
-                    }));
-                    
-                    // 空の状態を削除
-                    const emptyState = document.querySelector('.empty-state');
-                    if (emptyState) {
-                        emptyState.remove();
-                    }
-                };
-                
-                ws.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    handleWebSocketMessage(data);
-                };
-                
-                ws.onclose = () => {
-                    isConnected = false;
-                    updateConnectionStatus(false);
-                    // 再接続を試みる
-                    setTimeout(connectWebSocket, 3000);
-                };
-                
-                ws.onerror = (error) => {
-                    console.log('WebSocket接続に失敗しました。ローカルモードで動作します。');
-                    isConnected = false;
-                    updateConnectionStatus(false);
-                    enableLocalMode();
-                };
-                
-            } catch (error) {
-                console.log('WebSocketサーバーが見つかりません。ローカルモードで動作します。');
-                enableLocalMode();
+        function addDemoUser(username) {
+            if (!users.has(username)) {
+                users.set(username, { 
+                    username: username, 
+                    isDemo: true,
+                    joinTime: new Date()
+                });
+                updateUserList();
+                addSystemMessage(`${username} さんが参加しました`);
             }
         }
         
-        function enableLocalMode() {
-            // ローカルモードを有効にする
-            const emptyState = document.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.innerHTML = `
-                    ${currentUsername}さん、チャットへようこそ！<br>
-                    <small>ローカルモードで動作中（他のユーザーとの通信はできません）</small>
-                `;
-            } else {
-                addSystemMessage(`${currentUsername}さん、チャットへようこそ！（ローカルモード）`);
-            }
-        }
-        
-        function handleWebSocketMessage(data) {
-            switch (data.type) {
-                case 'userId':
-                    myUserId = data.userId;
-                    break;
-                    
-                case 'userList':
-                    updateUserList(data.users);
-                    break;
-                    
-                case 'userJoined':
-                    users.set(data.userId, { username: data.username });
-                    updateUserListUI();
-                    addSystemMessage(`${data.username} さんが参加しました`);
-                    break;
-                    
-                case 'userLeft':
-                    users.delete(data.userId);
-                    updateUserListUI();
-                    addSystemMessage(`${data.username} さんが退出しました`);
-                    break;
-                    
-                case 'message':
-                    addMessage(data.text, data.sender, data.senderId !== myUserId);
-                    break;
-            }
-        }
-        
-        function updateConnectionStatus(connected) {
-            const indicator = document.getElementById('statusIndicator');
-            const status = document.getElementById('connectionStatus');
-            
-            if (connected) {
-                indicator.classList.add('connected');
-                indicator.classList.remove('disconnected');
-                status.textContent = '接続済み';
-            } else {
-                indicator.classList.remove('connected');
-                indicator.classList.add('disconnected');
-                status.textContent = '切断中...';
-            }
-        }
-        
-        function updateUserList(userList) {
-            users.clear();
-            userList.forEach(user => {
-                if (user.id !== myUserId) {
-                    users.set(user.id, { username: user.username });
-                }
-            });
-            updateUserListUI();
-        }
-        
-        function updateUserListUI() {
+        function updateUserList() {
             const userListDiv = document.getElementById('userList');
             userListDiv.innerHTML = '';
             
@@ -482,27 +312,41 @@
             const message = input.value.trim();
             
             if (message) {
-                if (isConnected && ws && ws.readyState === WebSocket.OPEN) {
-                    // サーバー経由でメッセージを送信
-                    ws.send(JSON.stringify({
-                        type: 'message',
-                        text: message
-                    }));
-                } else {
-                    // ローカルモードでメッセージを表示
-                    addMessage(message, currentUsername, false);
-                }
-                
+                addMessage(message, currentUsername, false);
                 input.value = '';
                 
-                // メッセージを配列に保存
                 messages.push({
                     text: message,
                     sender: currentUsername,
-                    timestamp: new Date(),
-                    type: 'sent'
+                    timestamp: new Date()
                 });
             }
+        }
+        
+        function simulateMessage() {
+            const demoUsers = Array.from(users.keys());
+            if (demoUsers.length === 0) {
+                alert('まずデモユーザーを追加してください');
+                return;
+            }
+            
+            const randomUser = demoUsers[Math.floor(Math.random() * demoUsers.length)];
+            const demoMessages = [
+                'こんにちは！',
+                'お元気ですか？',
+                'いい天気ですね',
+                '今日はどうでしたか？',
+                'また話しましょう！',
+                'ありがとうございます',
+                'そうですね',
+                '了解しました'
+            ];
+            
+            const randomMessage = demoMessages[Math.floor(Math.random() * demoMessages.length)];
+            
+            setTimeout(() => {
+                addMessage(randomMessage, randomUser, true);
+            }, 500);
         }
         
         function addMessage(text, sender, isReceived) {
@@ -510,13 +354,6 @@
             
             const messageContainer = document.createElement('div');
             messageContainer.className = 'message ' + (isReceived ? 'received' : 'sent');
-            
-            // 受信メッセージにクリックイベントを追加
-            if (isReceived) {
-                messageContainer.addEventListener('click', function() {
-                    markAsRead(this);
-                });
-            }
             
             const senderDiv = document.createElement('div');
             senderDiv.className = 'message-sender';
@@ -528,35 +365,8 @@
             messageContainer.appendChild(senderDiv);
             messageContainer.appendChild(messageText);
             
-            // 既読インジケーター用のdivを追加
-            if (isReceived) {
-                const readIndicator = document.createElement('div');
-                readIndicator.className = 'read-indicator';
-                readIndicator.style.display = 'none';
-                readIndicator.textContent = '既読';
-                messageContainer.appendChild(readIndicator);
-            }
-            
             messagesDiv.appendChild(messageContainer);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-        
-        function markAsRead(messageElement) {
-            if (!messageElement.classList.contains('read')) {
-                messageElement.classList.add('read');
-                const readIndicator = messageElement.querySelector('.read-indicator');
-                if (readIndicator) {
-                    readIndicator.style.display = 'block';
-                }
-                
-                // サーバーに既読通知を送信（接続時のみ）
-                if (isConnected && ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({
-                        type: 'read',
-                        timestamp: new Date().toISOString()
-                    }));
-                }
-            }
         }
         
         function addSystemMessage(text) {
@@ -568,11 +378,10 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
-        function startCall() {
-            if (users.size > 0) {
-                alert('通話機能は準備中です。\n他のユーザーとの通話が可能になります。');
-            } else {
-                alert('通話できるユーザーがオンラインにいません。');
+        function openVoiceChat() {
+            if (confirm('音声通話機能を開きますか？\n（voice-chat.htmlまたはreal-chat.htmlが開きます）')) {
+                // 同じディレクトリのvoice-chat.htmlを開く
+                window.open('voice-chat.html', '_blank');
             }
         }
         
@@ -582,7 +391,7 @@
             input.onchange = function(e) {
                 const file = e.target.files[0];
                 if (file) {
-                    addSystemMessage(`ファイル「${file.name}」が選択されました（送信機能は準備中）`);
+                    addSystemMessage(`ファイル「${file.name}」が選択されました（デモ版のため実際の送信はできません）`);
                 }
             };
             input.click();
@@ -591,12 +400,11 @@
         function openSettings() {
             const settings = {
                 username: currentUsername,
-                messages: messages.length,
-                connected: isConnected,
-                onlineUsers: users.size
+                demoUsers: users.size,
+                messages: messages.length
             };
             
-            alert(`設定情報:\n\nユーザー名: ${settings.username}\n送信メッセージ数: ${settings.messages}\n接続状態: ${settings.connected ? '接続中' : '切断中'}\nオンラインユーザー数: ${settings.onlineUsers}人`);
+            alert(`設定情報:\n\nユーザー名: ${settings.username}\nデモユーザー数: ${settings.demoUsers}人\n送信メッセージ数: ${settings.messages}\n\nこれはデモ版です。\n実際のリアルタイム通信には音声通話アプリをご利用ください。`);
         }
         
         // Enterキーで名前入力
@@ -605,9 +413,6 @@
                 startChat();
             }
         });
-        
-        // 初期化時にユーザーリストを更新
-        updateUserListUI();
     </script>
 </body>
 </html>
