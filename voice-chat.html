@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音声通話チャット</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f0f0f0;
+        }
+        
+        .name-input-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .name-input-modal {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .main-container {
+            flex: 1;
+            display: none;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        .user-list-container {
+            width: 300px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .user-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background-color: #34495e;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .user-item:hover {
+            background-color: #3e4f60;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-status {
+            width: 10px;
+            height: 10px;
+            background-color: #2ecc71;
+            border-radius: 50%;
+        }
+        
+        .user-status.busy {
+            background-color: #e74c3c;
+        }
+        
+        .call-button {
+            padding: 5px 10px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .call-button:hover {
+            background-color: #2ecc71;
+        }
+        
+        .call-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+        }
+        
+        .chat-header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .call-status {
+            display: none;
+            padding: 10px 20px;
+            background-color: #27ae60;
+            color: white;
+            border-radius: 5px;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .call-status.active {
+            display: flex;
+        }
+        
+        .end-call-button {
+            padding: 5px 15px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+        
+        .message.sent {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.received {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        
+        .message.system {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            text-align: center;
+            margin: 10px auto;
+            font-style: italic;
+            font-size: 14px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+        }
+        
+        button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .incoming-call-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 2000;
+        }
+        
+        .incoming-call-modal.active {
+            display: block;
+        }
+        
+        .call-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .accept-button {
+            background-color: #27ae60;
+        }
+        
+        .reject-button {
+            background-color: #e74c3c;
+        }
+        
+        audio {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="name-input-overlay" id="nameInputOverlay">
+        <div class="name-input-modal">
+            <h2>お名前を入力してください</h2>
+            <input type="text" id="usernameInput" placeholder="名前を入力..." autofocus>
+            <button onclick="startApp()">開始</button>
+        </div>
+    </div>
+    
+    <div class="main-container" id="mainContainer">
+        <div class="user-list-container">
+            <h3 style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #34495e;">
+                オンラインユーザー
+            </h3>
+            <div id="userList"></div>
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-header">
+                <h1>音声通話チャット</h1>
+                <div class="call-status" id="callStatus">
+                    <span id="callStatusText">通話中...</span>
+                    <button class="end-call-button" onclick="endCall()">通話終了</button>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-container">
+                <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="if(event.key==='Enter')sendMessage()">
+                <button onclick="sendMessage()">送信</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="incoming-call-modal" id="incomingCallModal">
+        <h3 id="callerName">からの着信</h3>
+        <p>音声通話のリクエストが届いています</p>
+        <div class="call-actions">
+            <button class="accept-button" onclick="acceptCall()">応答</button>
+            <button class="reject-button" onclick="rejectCall()">拒否</button>
+        </div>
+    </div>
+    
+    <audio id="remoteAudio" autoplay></audio>
+    
+    <script>
+        let ws = null;
+        let currentUsername = '';
+        let myUserId = null;
+        let users = new Map();
+        let peerConnection = null;
+        let localStream = null;
+        let currentCallerId = null;
+        let isInCall = false;
+        
+        const iceServers = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+        
+        function startApp() {
+            const name = document.getElementById('usernameInput').value.trim();
+            if (name) {
+                currentUsername = name;
+                document.getElementById('nameInputOverlay').style.display = 'none';
+                document.getElementById('mainContainer').style.display = 'flex';
+                connectWebSocket();
+            }
+        }
+        
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:3001');
+            
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    type: 'join',
+                    username: currentUsername
+                }));
+            };
+            
+            ws.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+                await handleWebSocketMessage(data);
+            };
+            
+            ws.onclose = () => {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        async function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'userId':
+                    myUserId = data.userId;
+                    break;
+                    
+                case 'userList':
+                    updateUserList(data.users);
+                    break;
+                    
+                case 'userJoined':
+                    users.set(data.userId, { username: data.username, inCall: false });
+                    updateUserListUI();
+                    addSystemMessage(`${data.username} さんが参加しました`);
+                    break;
+                    
+                case 'userLeft':
+                    users.delete(data.userId);
+                    updateUserListUI();
+                    addSystemMessage(`${data.username} さんが退出しました`);
+                    break;
+                    
+                case 'message':
+                    addMessage(data.text, data.sender, data.senderId !== myUserId);
+                    break;
+                    
+                case 'incomingCall':
+                    if (!isInCall) {
+                        currentCallerId = data.callerId;
+                        document.getElementById('callerName').textContent = data.callerName + ' さんからの着信';
+                        document.getElementById('incomingCallModal').classList.add('active');
+                    }
+                    break;
+                    
+                case 'callAccepted':
+                    await startPeerConnection(true);
+                    showCallStatus();
+                    break;
+                    
+                case 'callRejected':
+                    alert('通話が拒否されました');
+                    cleanupCall();
+                    break;
+                    
+                case 'callEnded':
+                    addSystemMessage('通話が終了しました');
+                    cleanupCall();
+                    break;
+                    
+                case 'webrtcSignal':
+                    await handleWebRTCSignal(data.signal);
+                    break;
+                    
+                case 'callError':
+                    alert(data.message);
+                    break;
+            }
+        }
+        
+        function updateUserList(userList) {
+            users.clear();
+            userList.forEach(user => {
+                if (user.id !== myUserId) {
+                    users.set(user.id, { username: user.username, inCall: user.inCall });
+                }
+            });
+            updateUserListUI();
+        }
+        
+        function updateUserListUI() {
+            const userListDiv = document.getElementById('userList');
+            userListDiv.innerHTML = '';
+            
+            users.forEach((user, userId) => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <div class="user-info">
+                        <span class="user-status ${user.inCall ? 'busy' : ''}"></span>
+                        <span>${user.username}</span>
+                    </div>
+                    <button class="call-button" onclick="callUser('${userId}')" 
+                            ${user.inCall || isInCall ? 'disabled' : ''}>
+                        通話
+                    </button>
+                `;
+                userListDiv.appendChild(userItem);
+            });
+        }
+        
+        async function callUser(targetUserId) {
+            if (isInCall) return;
+            
+            isInCall = true;
+            ws.send(JSON.stringify({
+                type: 'callUser',
+                targetUserId: targetUserId
+            }));
+        }
+        
+        async function acceptCall() {
+            document.getElementById('incomingCallModal').classList.remove('active');
+            isInCall = true;
+            
+            ws.send(JSON.stringify({
+                type: 'acceptCall',
+                callerId: currentCallerId
+            }));
+            
+            await startPeerConnection(false);
+            showCallStatus();
+        }
+        
+        function rejectCall() {
+            document.getElementById('incomingCallModal').classList.remove('active');
+            
+            ws.send(JSON.stringify({
+                type: 'rejectCall',
+                callerId: currentCallerId
+            }));
+            
+            currentCallerId = null;
+        }
+        
+        async function startPeerConnection(isInitiator) {
+            try {
+                // マイクの権限を取得
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                
+                // PeerConnectionを作成
+                peerConnection = new RTCPeerConnection(iceServers);
+                
+                // ローカルストリームを追加
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                // リモートストリームを受信
+                peerConnection.ontrack = (event) => {
+                    const remoteAudio = document.getElementById('remoteAudio');
+                    remoteAudio.srcObject = event.streams[0];
+                };
+                
+                // ICE候補を相手に送信
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        ws.send(JSON.stringify({
+                            type: 'webrtcSignal',
+                            signal: {
+                                type: 'ice-candidate',
+                                candidate: event.candidate
+                            }
+                        }));
+                    }
+                };
+                
+                // 発信者の場合はオファーを作成
+                if (isInitiator) {
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'webrtcSignal',
+                        signal: {
+                            type: 'offer',
+                            offer: offer
+                        }
+                    }));
+                }
+                
+            } catch (error) {
+                console.error('Error starting peer connection:', error);
+                alert('マイクへのアクセスが拒否されました');
+                cleanupCall();
+            }
+        }
+        
+        async function handleWebRTCSignal(signal) {
+            if (!peerConnection) return;
+            
+            try {
+                if (signal.type === 'offer') {
+                    await peerConnection.setRemoteDescription(signal.offer);
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'webrtcSignal',
+                        signal: {
+                            type: 'answer',
+                            answer: answer
+                        }
+                    }));
+                } else if (signal.type === 'answer') {
+                    await peerConnection.setRemoteDescription(signal.answer);
+                } else if (signal.type === 'ice-candidate') {
+                    await peerConnection.addIceCandidate(signal.candidate);
+                }
+            } catch (error) {
+                console.error('Error handling WebRTC signal:', error);
+            }
+        }
+        
+        function showCallStatus() {
+            document.getElementById('callStatus').classList.add('active');
+            updateUserListUI();
+        }
+        
+        function endCall() {
+            ws.send(JSON.stringify({
+                type: 'endCall'
+            }));
+            
+            cleanupCall();
+            addSystemMessage('通話を終了しました');
+        }
+        
+        function cleanupCall() {
+            isInCall = false;
+            currentCallerId = null;
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            document.getElementById('remoteAudio').srcObject = null;
+            document.getElementById('callStatus').classList.remove('active');
+            document.getElementById('incomingCallModal').classList.remove('active');
+            
+            updateUserListUI();
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'message',
+                    text: message
+                }));
+                input.value = '';
+            }
+        }
+        
+        function addMessage(text, sender, isReceived) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (isReceived ? 'received' : 'sent');
+            messageDiv.innerHTML = `<strong>${sender}:</strong><br>${text}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function addSystemMessage(text) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Enterキーで名前入力
+        document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startApp();
+            }
+        });
+    </script>
+</body>
+</html>

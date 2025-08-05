@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メディアテスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #f0f0f0;
+        }
+        
+        .message.mine {
+            background-color: #007bff;
+            color: white;
+            text-align: right;
+        }
+        
+        .message img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        
+        .message video {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        
+        .message audio {
+            width: 100%;
+        }
+        
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .recording {
+            background-color: #dc3545;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>メディアテスト</h1>
+    
+    <div>
+        <input type="file" id="fileInput" accept="image/*,video/*,audio/*">
+        <button onclick="sendFile()">ファイル送信</button>
+        <button id="recordBtn" onclick="toggleRecording()">🎤 録音</button>
+    </div>
+    
+    <div id="messages"></div>
+    
+    <script>
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        
+        function addMessage(content, isMine = true) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message' + (isMine ? ' mine' : '');
+            messageDiv.appendChild(content);
+            messagesDiv.appendChild(messageDiv);
+        }
+        
+        function sendFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('ファイルを選択してください');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileData = e.target.result;
+                
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = fileData;
+                    img.alt = file.name;
+                    addMessage(img, true);
+                    
+                    // テスト用: 相手からの返信
+                    setTimeout(() => {
+                        const replyImg = document.createElement('img');
+                        replyImg.src = fileData;
+                        replyImg.alt = 'Reply: ' + file.name;
+                        addMessage(replyImg, false);
+                    }, 1000);
+                    
+                } else if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = fileData;
+                    video.controls = true;
+                    addMessage(video, true);
+                    
+                    // テスト用: 相手からの返信
+                    setTimeout(() => {
+                        const replyVideo = document.createElement('video');
+                        replyVideo.src = fileData;
+                        replyVideo.controls = true;
+                        addMessage(replyVideo, false);
+                    }, 1000);
+                    
+                } else if (file.type.startsWith('audio/')) {
+                    const audio = document.createElement('audio');
+                    audio.src = fileData;
+                    audio.controls = true;
+                    addMessage(audio, true);
+                    
+                    // テスト用: 相手からの返信
+                    setTimeout(() => {
+                        const replyAudio = document.createElement('audio');
+                        replyAudio.src = fileData;
+                        replyAudio.controls = true;
+                        addMessage(replyAudio, false);
+                    }, 1000);
+                }
+            };
+            
+            reader.readAsDataURL(file);
+            fileInput.value = '';
+        }
+        
+        async function toggleRecording() {
+            const recordBtn = document.getElementById('recordBtn');
+            
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        
+                        const audio = document.createElement('audio');
+                        audio.src = audioUrl;
+                        audio.controls = true;
+                        addMessage(audio, true);
+                        
+                        // テスト用: 相手からの返信
+                        setTimeout(() => {
+                            const replyAudio = document.createElement('audio');
+                            replyAudio.src = audioUrl;
+                            replyAudio.controls = true;
+                            addMessage(replyAudio, false);
+                        }, 1000);
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    recordBtn.classList.add('recording');
+                    recordBtn.textContent = '⏹️ 停止';
+                    
+                } catch (error) {
+                    alert('マイクへのアクセスが拒否されました');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.classList.remove('recording');
+                recordBtn.textContent = '🎤 録音';
+            }
+        }
+        
+        // テスト用の初期メッセージ
+        window.onload = function() {
+            const textMsg = document.createElement('div');
+            textMsg.textContent = 'メディアテストページです。ファイルをアップロードしてテストしてください。';
+            addMessage(textMsg, false);
+        };
+    </script>
+</body>
+</html>

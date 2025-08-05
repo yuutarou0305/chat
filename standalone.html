@@ -1,0 +1,2715 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チャット</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f0f0f0;
+        }
+        
+        .name-input-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .name-input-modal {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .name-input-modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .name-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .name-submit-button {
+            padding: 10px 30px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .name-submit-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .chat-header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+            position: relative;
+        }
+        
+        .message:hover .message-actions {
+            display: block;
+        }
+        
+        .message-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: none;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+            padding: 2px;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 5px;
+            color: #dc3545;
+        }
+        
+        .delete-btn:hover {
+            background-color: #dc3545;
+            color: white;
+            border-radius: 3px;
+        }
+        
+        .message-sender {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .message-time {
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 5px;
+        }
+        
+        .read-status {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 2px;
+            color: #007bff;
+        }
+        
+        .unread-indicator {
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .notification-permission {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1001;
+            display: none;
+        }
+        
+        .notification-button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007bff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .message.sent {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.received {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+        }
+        
+        .send-button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .send-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .media-message {
+            margin: 10px 0;
+        }
+        
+        .media-message img {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 10px;
+        }
+        
+        .file-link {
+            color: #007bff;
+            text-decoration: none;
+            padding: 5px 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        
+        .media-buttons {
+            display: flex;
+            gap: 5px;
+            margin-right: 10px;
+        }
+        
+        .media-button {
+            padding: 8px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .media-button:hover {
+            background-color: #5a6268;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .header-button {
+            padding: 5px 10px;
+            margin: 0 5px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .header-button:hover {
+            background-color: #218838;
+        }
+        
+        .fix-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #dc3545;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1001;
+            display: none;
+        }
+        
+        .fix-button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #dc3545;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .emoji-panel {
+            position: absolute;
+            bottom: 60px;
+            left: 50px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .emoji-category {
+            margin-bottom: 10px;
+        }
+        
+        .emoji-category h4 {
+            margin: 0 0 5px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+        }
+        
+        .emoji-item {
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 20px;
+            transition: background-color 0.2s;
+        }
+        
+        .emoji-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .animated-emoji {
+            display: inline-block;
+            animation-duration: 1s;
+            animation-iteration-count: infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(20deg); }
+            75% { transform: rotate(-20deg); }
+        }
+        
+        @keyframes flip {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(0deg); }
+        }
+        
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            25% { filter: hue-rotate(90deg); }
+            50% { filter: hue-rotate(180deg); }
+            75% { filter: hue-rotate(270deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+        
+        @keyframes swing {
+            0%, 100% { transform: rotate(0deg) translateX(0px); }
+            25% { transform: rotate(5deg) translateX(5px); }
+            75% { transform: rotate(-5deg) translateX(-5px); }
+        }
+        
+        @keyframes zoom {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        
+        @keyframes wobble {
+            0%, 100% { transform: translateX(0px); }
+            15% { transform: translateX(-10px) rotate(-5deg); }
+            30% { transform: translateX(10px) rotate(3deg); }
+            45% { transform: translateX(-5px) rotate(-2deg); }
+            60% { transform: translateX(5px) rotate(1deg); }
+            75% { transform: translateX(-2px) rotate(-1deg); }
+        }
+        
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 5px currentColor; }
+            50% { text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+        }
+        
+        @keyframes fade {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        @keyframes slide {
+            0%, 100% { transform: translateX(0px); }
+            50% { transform: translateX(20px); }
+        }
+        
+        @keyframes rotate3d {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            25% { transform: rotateX(90deg) rotateY(0deg); }
+            50% { transform: rotateX(90deg) rotateY(90deg); }
+            75% { transform: rotateX(0deg) rotateY(90deg); }
+            100% { transform: rotateX(0deg) rotateY(0deg); }
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.1); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+        
+        @keyframes dance {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-10deg) scale(1.1); }
+            50% { transform: rotate(10deg) scale(0.9); }
+            75% { transform: rotate(-5deg) scale(1.05); }
+        }
+        
+        @keyframes explode {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.5) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+        
+        @keyframes typing {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        .bounce { animation-name: bounce; }
+        .shake { animation-name: shake; }
+        .spin { animation-name: spin; }
+        .pulse { animation-name: pulse; }
+        .wave { animation-name: wave; }
+        .flip { animation-name: flip; }
+        .rainbow { animation-name: rainbow; }
+        .swing { animation-name: swing; }
+        .zoom { animation-name: zoom; }
+        .wobble { animation-name: wobble; }
+        .glow { animation-name: glow; }
+        .fade { animation-name: fade; }
+        .slide { animation-name: slide; }
+        .rotate3d { animation-name: rotate3d; }
+        .heartbeat { animation-name: heartbeat; }
+        .float { animation-name: float; }
+        .dance { animation-name: dance; }
+        .explode { animation-name: explode; }
+        .typing { animation-name: typing; }
+        
+        .custom-emoji {
+            display: inline-block;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 2px;
+            border-radius: 50%;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .fire-emoji {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            color: white;
+        }
+        
+        .ice-emoji {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            color: white;
+        }
+        
+        .magic-emoji {
+            background: linear-gradient(45deg, #a29bfe, #6c5ce7);
+            color: white;
+        }
+        
+        .love-emoji {
+            background: linear-gradient(45deg, #fd79a8, #e84393);
+            color: white;
+        }
+        
+        .electric-emoji {
+            background: linear-gradient(45deg, #fdcb6e, #e17055);
+            color: white;
+        }
+        
+        .space-emoji {
+            background: linear-gradient(45deg, #6c5ce7, #2d3436);
+            color: white;
+        }
+        
+        .ocean-emoji {
+            background: linear-gradient(45deg, #00cec9, #0984e3);
+            color: white;
+        }
+        
+        .forest-emoji {
+            background: linear-gradient(45deg, #00b894, #55a3ff);
+            color: white;
+        }
+        
+        .sunset-emoji {
+            background: linear-gradient(45deg, #fd79a8, #fdcb6e);
+            color: white;
+        }
+        
+        .neon-emoji {
+            background: linear-gradient(45deg, #00cec9, #55a3ff);
+            color: white;
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        .crystal-emoji {
+            background: linear-gradient(45deg, #a29bfe, #74b9ff);
+            color: white;
+        }
+        
+        .volcano-emoji {
+            background: linear-gradient(45deg, #e17055, #2d3436);
+            color: white;
+        }
+        
+        .emoji-icon {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            position: relative;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 24px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .star-icon {
+            background: linear-gradient(45deg, #fdcb6e, #e17055);
+            position: relative;
+        }
+        
+        .star-icon::before {
+            content: '★';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .heart-icon {
+            background: linear-gradient(45deg, #fd79a8, #e84393);
+            position: relative;
+        }
+        
+        .heart-icon::before {
+            content: '♥';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .lightning-icon {
+            background: linear-gradient(45deg, #fdcb6e, #f39c12);
+            position: relative;
+        }
+        
+        .lightning-icon::before {
+            content: '⚡';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+        }
+        
+        .diamond-icon {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            position: relative;
+        }
+        
+        .diamond-icon::before {
+            content: '◆';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+        }
+        
+        .flower-icon {
+            background: linear-gradient(45deg, #fd79a8, #fdcb6e);
+            position: relative;
+        }
+        
+        .flower-icon::before {
+            content: '❀';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .crown-icon {
+            background: linear-gradient(45deg, #fdcb6e, #e17055);
+            position: relative;
+        }
+        
+        .crown-icon::before {
+            content: '♛';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .music-icon {
+            background: linear-gradient(45deg, #a29bfe, #6c5ce7);
+            position: relative;
+        }
+        
+        .music-icon::before {
+            content: '♪';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .peace-icon {
+            background: linear-gradient(45deg, #00b894, #55a3ff);
+            position: relative;
+        }
+        
+        .peace-icon::before {
+            content: '☮';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .sun-icon {
+            background: linear-gradient(45deg, #fdcb6e, #f39c12);
+            position: relative;
+        }
+        
+        .sun-icon::before {
+            content: '☀';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .moon-icon {
+            background: linear-gradient(45deg, #636e72, #2d3436);
+            position: relative;
+        }
+        
+        .moon-icon::before {
+            content: '☾';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .cloud-icon {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            position: relative;
+        }
+        
+        .cloud-icon::before {
+            content: '☁';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .snowflake-icon {
+            background: linear-gradient(45deg, #74b9ff, #ffffff);
+            position: relative;
+        }
+        
+        .snowflake-icon::before {
+            content: '❅';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+        }
+        
+        .poll-container {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .poll-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .poll-option {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin: 5px 0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .poll-option:hover {
+            background-color: #e9ecef;
+        }
+        
+        .poll-option.voted {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .poll-votes {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        .game-container {
+            background-color: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .game-title {
+            font-weight: bold;
+            color: #4caf50;
+            margin-bottom: 10px;
+        }
+        
+        .game-button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        
+        .game-button:hover {
+            background-color: #45a049;
+        }
+        
+        .location-container {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .location-link {
+            color: #007bff;
+            text-decoration: none;
+        }
+        
+        .location-link:hover {
+            text-decoration: underline;
+        }
+        
+        .tools-panel {
+            position: absolute;
+            bottom: 60px;
+            left: 50px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+        }
+        
+        .tool-button {
+            display: block;
+            width: 100%;
+            padding: 8px 16px;
+            margin: 5px 0;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+        }
+        
+        .tool-button:hover {
+            background-color: #e9ecef;
+        }
+        
+        .tool-icon {
+            margin-right: 5px;
+        }
+        
+        .timer-container {
+            background-color: #ffeaa7;
+            border: 2px solid #fdcb6e;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .timer-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3436;
+            margin: 10px 0;
+        }
+        
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        
+        .timer-button {
+            background-color: #fdcb6e;
+            color: #2d3436;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .timer-button:hover {
+            background-color: #f39c12;
+        }
+        
+        .custom-quiz-container {
+            background-color: #dfe6e9;
+            border: 2px solid #74b9ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .quiz-question {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .quiz-answer-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .avatar-selector {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .avatar-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .avatar-option:hover {
+            border-color: #007bff;
+        }
+        
+        .avatar-option.selected {
+            border-color: #007bff;
+            background-color: #e9ecef;
+        }
+        
+        .custom-emoji-creator {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px;
+        }
+        
+        .custom-emoji-preview {
+            width: 50px;
+            height: 50px;
+            border: 2px dashed #ddd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px auto;
+            font-size: 24px;
+            background-color: #f8f9fa;
+        }
+        
+        .emoji-input-group {
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .emoji-input-group label {
+            min-width: 60px;
+            font-size: 12px;
+        }
+        
+        .emoji-input-group input, 
+        .emoji-input-group select {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .create-emoji-btn {
+            width: 100%;
+            padding: 8px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .create-emoji-btn:hover {
+            background-color: #218838;
+        }
+        
+        .user-emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .user-emoji-item {
+            position: relative;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .user-emoji-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .delete-user-emoji {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 16px;
+            height: 16px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+        }
+        
+        .user-emoji-item:hover .delete-user-emoji {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="name-input-overlay" id="nameInputOverlay">
+        <div class="name-input-modal">
+            <h2>お名前を入力してください</h2>
+            <input type="text" class="name-input" id="usernameInput" placeholder="名前を入力..." autofocus>
+            
+            <div class="avatar-selector">
+                <h3 style="font-size: 14px; margin-bottom: 10px;">アバターを選択</h3>
+                <div class="avatar-grid" id="avatarGrid">
+                    <div class="avatar-option" data-avatar="😀">😀</div>
+                    <div class="avatar-option" data-avatar="😎">😎</div>
+                    <div class="avatar-option" data-avatar="🤖">🤖</div>
+                    <div class="avatar-option" data-avatar="👽">👽</div>
+                    <div class="avatar-option" data-avatar="🦄">🦄</div>
+                    <div class="avatar-option" data-avatar="🐱">🐱</div>
+                    <div class="avatar-option" data-avatar="🐶">🐶</div>
+                    <div class="avatar-option" data-avatar="🐼">🐼</div>
+                    <div class="avatar-option" data-avatar="🦁">🦁</div>
+                    <div class="avatar-option" data-avatar="🐸">🐸</div>
+                </div>
+            </div>
+            
+            <button class="name-submit-button" id="nameSubmitButton">チャットを開始</button>
+        </div>
+    </div>
+    
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+            <h1>チャット<span id="unreadIndicator" class="unread-indicator" style="display: none;">0</span></h1>
+            <div id="currentUser" style="font-size: 14px; margin-top: 5px;"></div>
+            <div style="margin-top: 10px;">
+                <button class="header-button" onclick="changeName()">名前変更</button>
+                <button class="header-button" onclick="reloadMessages()">再読込</button>
+                <button class="header-button" onclick="clearChat()">クリア</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+        </div>
+        <div class="chat-input-container">
+            <div class="media-buttons">
+                <button class="media-button" id="fileButton" title="ファイル">📁</button>
+                <button class="media-button" id="emojiButton" title="絵文字">😊</button>
+                <button class="media-button" id="toolsButton" title="ツール">🔧</button>
+            </div>
+            <div class="tools-panel" id="toolsPanel">
+                <button class="tool-button" onclick="createPoll()">
+                    <span class="tool-icon">📊</span>アンケート作成
+                </button>
+                <button class="tool-button" onclick="startQuiz()">
+                    <span class="tool-icon">❓</span>クイズを始める
+                </button>
+                <button class="tool-button" onclick="startShiritori()">
+                    <span class="tool-icon">🔤</span>しりとりを始める
+                </button>
+                <button class="tool-button" onclick="startJanken()">
+                    <span class="tool-icon">✊</span>じゃんけんをする
+                </button>
+                <button class="tool-button" onclick="shareLocation()">
+                    <span class="tool-icon">📍</span>現在位置を共有
+                </button>
+                <button class="tool-button" onclick="startTimer()">
+                    <span class="tool-icon">⏰</span>タイマー設定
+                </button>
+                <button class="tool-button" onclick="createCustomQuiz()">
+                    <span class="tool-icon">📝</span>クイズを作成
+                </button>
+            </div>
+            <div class="emoji-panel" id="emojiPanel">
+                <div class="emoji-category">
+                    <h4>基本的な絵文字</h4>
+                    <div class="emoji-grid" id="basicEmojis"></div>
+                </div>
+                <div class="emoji-category">
+                    <h4>動く絵文字</h4>
+                    <div class="emoji-grid" id="animatedEmojis"></div>
+                </div>
+                <div class="emoji-category">
+                    <h4>特別な絵文字</h4>
+                    <div class="emoji-grid" id="specialEmojis"></div>
+                </div>
+                <div class="emoji-category">
+                    <h4>オリジナル絵文字</h4>
+                    <div class="emoji-grid" id="customEmojis"></div>
+                </div>
+                <div class="emoji-category">
+                    <h4>アイコン絵文字</h4>
+                    <div class="emoji-grid" id="iconEmojis"></div>
+                </div>
+                <div class="emoji-category">
+                    <h4>自作絵文字</h4>
+                    <div class="custom-emoji-creator">
+                        <div class="custom-emoji-preview" id="emojiPreview">?</div>
+                        <div class="emoji-input-group">
+                            <label>文字:</label>
+                            <input type="text" id="emojiText" placeholder="文字" maxlength="3">
+                        </div>
+                        <div class="emoji-input-group">
+                            <label>色:</label>
+                            <input type="color" id="emojiColor" value="#007bff">
+                        </div>
+                        <div class="emoji-input-group">
+                            <label>背景:</label>
+                            <input type="color" id="emojiBgColor" value="#ffffff">
+                        </div>
+                        <div class="emoji-input-group">
+                            <label>効果:</label>
+                            <select id="emojiAnimation">
+                                <option value="none">なし</option>
+                                <option value="bounce">跳ねる</option>
+                                <option value="spin">回転</option>
+                                <option value="pulse">脈打つ</option>
+                                <option value="shake">震える</option>
+                                <option value="glow">光る</option>
+                            </select>
+                        </div>
+                        <button class="create-emoji-btn" onclick="createUserEmoji()">絵文字を作成</button>
+                    </div>
+                    <div class="user-emoji-grid" id="userEmojiGrid"></div>
+                </div>
+            </div>
+            <input type="file" class="file-input" id="fileInput" accept="*/*">
+            <input type="text" class="chat-input" id="messageInput" placeholder="メッセージを入力...">
+            <button class="send-button" id="sendButton">送信</button>
+        </div>
+    </div>
+    
+    <div class="notification-permission" id="notificationPermission">
+        🔔 通知を有効にしますか？
+        <button class="notification-button" onclick="enableNotifications()">有効にする</button>
+        <button class="notification-button" onclick="dismissNotificationPrompt()">後で</button>
+    </div>
+    
+    <script>
+        let currentUsername = '';
+        let currentAvatar = '😀';
+        let messageHistory = [];
+        let unreadCount = 0;
+        let isWindowFocused = true;
+        let lastReadTime = new Date();
+        let currentGame = null;
+        let pollData = {};
+        let userAvatars = {};
+        let activeTimers = {};
+        let userEmojis = [];
+        
+        const nameInputOverlay = document.getElementById('nameInputOverlay');
+        const usernameInput = document.getElementById('usernameInput');
+        const nameSubmitButton = document.getElementById('nameSubmitButton');
+        const chatContainer = document.getElementById('chatContainer');
+        const currentUserDisplay = document.getElementById('currentUser');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const fileButton = document.getElementById('fileButton');
+        const fileInput = document.getElementById('fileInput');
+        const emojiButton = document.getElementById('emojiButton');
+        const emojiPanel = document.getElementById('emojiPanel');
+        const unreadIndicator = document.getElementById('unreadIndicator');
+        const notificationPermission = document.getElementById('notificationPermission');
+        const toolsButton = document.getElementById('toolsButton');
+        const toolsPanel = document.getElementById('toolsPanel');
+        
+        // 絵文字データ
+        const basicEmojis = [
+            '😀', '😁', '😂', '😃', '😄', '😅',
+            '😆', '😇', '😈', '😉', '😊', '😋',
+            '😌', '😍', '😎', '😏', '😐', '😑',
+            '😒', '😓', '😔', '😕', '😖', '😗',
+            '😘', '😙', '😚', '😛', '😜', '😝',
+            '😞', '😟', '😠', '😡', '😢', '😣',
+            '😤', '😥', '😦', '😧', '😨', '😩',
+            '😪', '😫', '😬', '😭', '😮', '😯',
+            '😰', '😱', '😲', '😳', '😴', '😵'
+        ];
+        
+        const animatedEmojis = [
+            { emoji: '😂', class: 'bounce', name: '笑い' },
+            { emoji: '😍', class: 'pulse', name: 'ハート目' },
+            { emoji: '😡', class: 'shake', name: '怒り' },
+            { emoji: '🎉', class: 'spin', name: 'お祝い' },
+            { emoji: '👋', class: 'wave', name: '手を振る' },
+            { emoji: '❤️', class: 'heartbeat', name: 'ハート' },
+            { emoji: '🎆', class: 'explode', name: '花火' },
+            { emoji: '🌈', class: 'rainbow', name: '虹' },
+            { emoji: '⭐', class: 'glow', name: '星' },
+            { emoji: '💫', class: 'wobble', name: 'めまい' },
+            { emoji: '😱', class: 'shake', name: 'ビックリ' },
+            { emoji: '😭', class: 'bounce', name: '泣く' },
+            { emoji: '🎃', class: 'swing', name: 'ハロウィン' },
+            { emoji: '🎄', class: 'flip', name: 'クリスマス' },
+            { emoji: '🎈', class: 'float', name: '風船' },
+            { emoji: '🔥', class: 'dance', name: '火' },
+            { emoji: '⚡', class: 'glow', name: '雷' },
+            { emoji: '🌊', class: 'wave', name: '波' },
+            { emoji: '🌙', class: 'fade', name: '月' },
+            { emoji: '☀️', class: 'glow', name: '太陽' },
+            { emoji: '🌟', class: 'rotate3d', name: 'キラキラ星' },
+            { emoji: '💎', class: 'rainbow', name: 'ダイヤ' },
+            { emoji: '👻', class: 'float', name: 'ゴースト' },
+            { emoji: '🎵', class: 'slide', name: '音楽' },
+            { emoji: '🚀', class: 'slide', name: 'ロケット' },
+            { emoji: '🌀', class: 'spin', name: '台風' },
+            { emoji: '💥', class: 'explode', name: '爆発' },
+            { emoji: '⚽', class: 'bounce', name: 'サッカー' },
+            { emoji: '🎯', class: 'rotate3d', name: 'ダーツ' },
+            { emoji: '🎭', class: 'flip', name: '演劇' }
+        ];
+        
+        const customEmojis = [
+            { text: 'FIRE', class: 'fire-emoji dance', name: 'ファイア' },
+            { text: 'ICE', class: 'ice-emoji pulse', name: 'アイス' },
+            { text: '✨', class: 'magic-emoji rainbow', name: 'マジック' },
+            { text: 'LOVE', class: 'love-emoji heartbeat', name: 'ラブ' },
+            { text: 'WOW', class: 'electric-emoji explode', name: 'ワオ' },
+            { text: 'YES', class: 'forest-emoji bounce', name: 'イエス' },
+            { text: 'NO', class: 'volcano-emoji shake', name: 'ノー' },
+            { text: 'OK', class: 'ocean-emoji wave', name: 'オーケー' },
+            { text: 'HI', class: 'sunset-emoji wave', name: 'ハイ' },
+            { text: 'BYE', class: 'space-emoji fade', name: 'バイ' },
+            { text: 'THX', class: 'crystal-emoji glow', name: 'サンクス' },
+            { text: 'OMG', class: 'neon-emoji wobble', name: 'オーマイガッド' },
+            { text: 'BOOM', class: 'volcano-emoji explode', name: 'ブーム' },
+            { text: 'COOL', class: 'ice-emoji slide', name: 'クール' },
+            { text: 'HOT', class: 'fire-emoji glow', name: 'ホット' },
+            { text: 'STAR', class: 'neon-emoji rotate3d', name: 'スター' },
+            { text: 'MOON', class: 'space-emoji fade', name: 'ムーン' },
+            { text: 'SUN', class: 'sunset-emoji glow', name: 'サン' },
+            { text: 'WIND', class: 'crystal-emoji slide', name: 'ウィンド' },
+            { text: 'WAVE', class: 'ocean-emoji wave', name: 'ウェーブ' },
+            { text: 'GLOW', class: 'electric-emoji glow', name: 'グロウ' },
+            { text: 'FLOW', class: 'forest-emoji float', name: 'フロウ' },
+            { text: 'ZOOM', class: 'neon-emoji zoom', name: 'ズーム' },
+            { text: 'SPIN', class: 'crystal-emoji spin', name: 'スピン' },
+            { text: 'FLIP', class: 'magic-emoji flip', name: 'フリップ' },
+            { text: 'BEAT', class: 'electric-emoji heartbeat', name: 'ビート' },
+            { text: 'VIBE', class: 'sunset-emoji dance', name: 'バイブ' },
+            { text: 'NOVA', class: 'space-emoji explode', name: 'ノヴァ' }
+        ];
+        
+        const iconEmojis = [
+            { icon: 'star-icon', class: 'emoji-icon star-icon glow', name: 'スター' },
+            { icon: 'heart-icon', class: 'emoji-icon heart-icon heartbeat', name: 'ハート' },
+            { icon: 'lightning-icon', class: 'emoji-icon lightning-icon shake', name: '稲妻' },
+            { icon: 'diamond-icon', class: 'emoji-icon diamond-icon rainbow', name: 'ダイヤモンド' },
+            { icon: 'flower-icon', class: 'emoji-icon flower-icon bounce', name: 'フラワー' },
+            { icon: 'crown-icon', class: 'emoji-icon crown-icon pulse', name: 'クラウン' },
+            { icon: 'music-icon', class: 'emoji-icon music-icon wave', name: 'ミュージック' },
+            { icon: 'peace-icon', class: 'emoji-icon peace-icon spin', name: 'ピース' },
+            { icon: 'sun-icon', class: 'emoji-icon sun-icon glow', name: 'サン' },
+            { icon: 'moon-icon', class: 'emoji-icon moon-icon fade', name: 'ムーン' },
+            { icon: 'cloud-icon', class: 'emoji-icon cloud-icon float', name: 'クラウド' },
+            { icon: 'snowflake-icon', class: 'emoji-icon snowflake-icon spin', name: 'スノーフレーク' }
+        ];
+        
+        const specialEmojis = [
+            '🎅', '🎄', '🎁', '🎂', '🎆', '🎇',
+            '🎈', '🎉', '🎊', '🎋', '🎌', '🎍',
+            '🎎', '🎏', '🎐', '🎑', '🎒', '🎓',
+            '🐶', '🐱', '🐭', '🐹', '🐰', '🐻',
+            '🐼', '🐨', '🐯', '🦁', '🐮', '🐷',
+            '🐽', '🐸', '🐙', '🐵', '🙈', '🙉',
+            '🌸', '🌺', '🌻', '🌷', '🌹', '🌼',
+            '🍎', '🍊', '🍋', '🍌', '🍇', '🍓',
+            '⚽', '🏀', '🏈', '⚾', '🎾', '🏐',
+            '🎸', '🎹', '🎺', '🎷', '🥁', '🎤',
+            '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️',
+            '✈️', '🚁', '🚢', '⛵', '🚤', '🛸'
+        ];
+        
+        // LocalStorageからメッセージ履歴を読み込み
+        function loadMessages() {
+            const saved = localStorage.getItem('chatMessages');
+            const savedPollData = localStorage.getItem('pollData');
+            
+            if (savedPollData) {
+                pollData = JSON.parse(savedPollData);
+            }
+            
+            if (saved) {
+                messageHistory = JSON.parse(saved);
+                messageHistory.forEach(msg => {
+                    if (msg.type === 'poll') {
+                        // アンケートの復元
+                        const messageContainer = document.createElement('div');
+                        messageContainer.classList.add('message', msg.sender !== currentUsername ? 'received' : 'sent');
+                        messageContainer.dataset.messageId = msg.id;
+                        
+                        const poll = pollData[msg.pollId];
+                        if (poll) {
+                            messageContainer.innerHTML = createPollUI(msg.pollId, poll);
+                        }
+                        
+                        chatMessages.appendChild(messageContainer);
+                    } else if (msg.type === 'location') {
+                        // 位置情報の復元
+                        const messageContainer = document.createElement('div');
+                        messageContainer.classList.add('message', msg.sender !== currentUsername ? 'received' : 'sent');
+                        messageContainer.dataset.messageId = msg.id;
+                        messageContainer.innerHTML = msg.html;
+                        chatMessages.appendChild(messageContainer);
+                    } else if (msg.type && msg.fileData) {
+                        addMediaMessageToUI(msg.text, msg.sender, msg.time, msg.sender !== currentUsername, msg.fileData, msg.type);
+                    } else if (msg.isAnimated && msg.htmlContent) {
+                        // アニメーション付きメッセージの復元
+                        const messageContainer = document.createElement('div');
+                        messageContainer.classList.add('message', msg.sender !== currentUsername ? 'received' : 'sent');
+                        
+                        const senderDiv = document.createElement('div');
+                        senderDiv.classList.add('message-sender');
+                        senderDiv.textContent = msg.sender;
+                        
+                        const messageDiv = document.createElement('div');
+                        messageDiv.innerHTML = msg.htmlContent;
+                        messageDiv.style.fontSize = '30px';
+                        
+                        const timeDiv = document.createElement('div');
+                        timeDiv.classList.add('message-time');
+                        timeDiv.textContent = msg.time;
+                        
+                        messageContainer.appendChild(senderDiv);
+                        messageContainer.appendChild(messageDiv);
+                        messageContainer.appendChild(timeDiv);
+                        
+                        chatMessages.appendChild(messageContainer);
+                    } else if (msg.type === 'timer') {
+                        // タイマーの復元
+                        const messageContainer = document.createElement('div');
+                        messageContainer.classList.add('message', msg.sender !== currentUsername ? 'received' : 'sent');
+                        messageContainer.dataset.messageId = msg.id;
+                        messageContainer.innerHTML = createTimerUI(msg.timerId, msg.minutes);
+                        chatMessages.appendChild(messageContainer);
+                        
+                        // タイマー再開
+                        if (msg.endTime && msg.endTime > Date.now()) {
+                            activeTimers[msg.timerId] = {
+                                endTime: msg.endTime,
+                                interval: null
+                            };
+                            startTimerInterval(msg.timerId);
+                        }
+                    } else if (msg.type === 'custom-quiz') {
+                        // カスタムクイズの復元
+                        const quizHtml = `
+                            <div class="custom-quiz-container" data-quiz-id="${msg.quizId}">
+                                <div class="message-sender">${msg.sender} からのクイズ</div>
+                                <div class="quiz-question">Q: ${msg.question}</div>
+                                <input type="text" class="quiz-answer-input" placeholder="答えを入力..." 
+                                       onkeypress="if(event.key==='Enter')checkCustomQuiz('${msg.quizId}', '${msg.answer}', this.value)">
+                                <button class="game-button" style="margin-top: 10px;" 
+                                        onclick="checkCustomQuiz('${msg.quizId}', '${msg.answer}', this.previousElementSibling.value)">
+                                    答えを確認
+                                </button>
+                            </div>
+                        `;
+                        const messageContainer = document.createElement('div');
+                        messageContainer.classList.add('message', msg.sender !== currentUsername ? 'received' : 'sent');
+                        messageContainer.dataset.messageId = msg.id;
+                        messageContainer.innerHTML = quizHtml;
+                        chatMessages.appendChild(messageContainer);
+                    } else {
+                        addMessageToUI(msg.text, msg.sender, msg.time, msg.sender !== currentUsername, msg.id);
+                    }
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+        
+        // メッセージをLocalStorageに保存
+        function saveMessages() {
+            localStorage.setItem('chatMessages', JSON.stringify(messageHistory));
+            localStorage.setItem('pollData', JSON.stringify(pollData));
+        }
+        
+        // 自作絵文字を保存
+        function saveUserEmojis() {
+            localStorage.setItem('userEmojis', JSON.stringify(userEmojis));
+        }
+        
+        // 自作絵文字を読み込み
+        function loadUserEmojis() {
+            const saved = localStorage.getItem('userEmojis');
+            if (saved) {
+                userEmojis = JSON.parse(saved);
+                updateUserEmojiGrid();
+            }
+        }
+        
+        // ユーザー名を保存
+        function saveUsername(username) {
+            localStorage.setItem('currentUsername', username);
+        }
+        
+        // ユーザー名を読み込み
+        function loadUsername() {
+            return localStorage.getItem('currentUsername');
+        }
+        
+        
+        // 名前入力処理
+        function submitName() {
+            const name = usernameInput.value.trim();
+            if (name) {
+                currentUsername = name;
+                userAvatars[currentUsername] = currentAvatar;
+                saveUserAvatars();
+                
+                currentUserDisplay.textContent = `ログイン中: ${currentUsername}`;
+                nameInputOverlay.style.display = 'none';
+                chatContainer.style.display = 'flex';
+                messageInput.focus();
+                loadMessages();
+                
+                // 入室メッセージ
+                addSystemMessage(`${currentAvatar} ${currentUsername} さんが入室しました`);
+            }
+        }
+        
+        let autoReloadInterval = null;
+        
+        // ページ読み込み時の処理
+        window.addEventListener('load', () => {
+            initEmojiPanel();
+            initNotifications();
+            initAvatarSelector();
+            loadUserAvatars();
+            loadUserEmojis();
+            initEmojiCreator();
+            
+            // 常に名前入力を表示（毎回名前を決められるように）
+            nameInputOverlay.style.display = 'flex';
+            chatContainer.style.display = 'none';
+            usernameInput.focus();
+        });
+        
+        // ウィンドウフォーカスの監視
+        window.addEventListener('focus', () => {
+            isWindowFocused = true;
+            markAllAsRead();
+        });
+        
+        window.addEventListener('blur', () => {
+            isWindowFocused = false;
+        });
+        
+        nameSubmitButton.addEventListener('click', submitName);
+        
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitName();
+            }
+        });
+        
+        // メッセージ追加（UIのみ）
+        function addMessageToUI(text, sender, time, isReceived = true, messageId = null) {
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message', isReceived ? 'received' : 'sent');
+            if (messageId) messageContainer.dataset.messageId = messageId;
+            
+            // 削除ボタンを追加
+            const messageActions = document.createElement('div');
+            messageActions.classList.add('message-actions');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('delete-btn');
+            deleteBtn.textContent = '削除';
+            deleteBtn.onclick = () => deleteMessage(messageId || Date.now());
+            messageActions.appendChild(deleteBtn);
+            messageContainer.appendChild(messageActions);
+            
+            const senderDiv = document.createElement('div');
+            senderDiv.classList.add('message-sender');
+            
+            // アバター追加
+            const avatar = document.createElement('div');
+            avatar.classList.add('avatar');
+            avatar.textContent = userAvatars[sender] || sender.charAt(0).toUpperCase();
+            avatar.style.backgroundColor = getAvatarColor(sender);
+            
+            senderDiv.appendChild(avatar);
+            const senderName = document.createElement('span');
+            senderName.textContent = sender;
+            senderDiv.appendChild(senderName);
+            
+            const messageText = document.createElement('div');
+            messageText.textContent = text;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.classList.add('message-time');
+            timeDiv.textContent = time;
+            
+            messageContainer.appendChild(senderDiv);
+            messageContainer.appendChild(messageText);
+            messageContainer.appendChild(timeDiv);
+            
+            // 既読表示（送信メッセージのみ）
+            if (!isReceived) {
+                const readStatus = document.createElement('div');
+                readStatus.classList.add('read-status');
+                readStatus.textContent = '既読';
+                messageContainer.appendChild(readStatus);
+            } else {
+                // 受信メッセージの場合、未読カウント更新
+                if (!isWindowFocused) {
+                    updateUnreadCount(1);
+                }
+            }
+            
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // 音声通知（受信メッセージで、ウィンドウがフォーカスされていない場合）
+            if (isReceived && !isWindowFocused) {
+                showNotification(sender, text);
+            }
+        }
+        
+        // メッセージ追加（保存付き）
+        function addMessage(text, sender, isReceived = true) {
+            const now = new Date();
+            const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            const messageId = Date.now();
+            
+            const message = { text, sender, time, id: messageId };
+            messageHistory.push(message);
+            saveMessages();
+            
+            addMessageToUI(text, sender, time, isReceived, messageId);
+        }
+        
+        // システムメッセージ追加
+        function addSystemMessage(text) {
+            const messageContainer = document.createElement('div');
+            messageContainer.style.textAlign = 'center';
+            messageContainer.style.margin = '10px 0';
+            messageContainer.style.color = '#666';
+            messageContainer.style.fontSize = '14px';
+            messageContainer.style.fontStyle = 'italic';
+            messageContainer.textContent = text;
+            
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // メッセージ送信処理
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                addMessage(message, currentUsername, false);
+                messageInput.value = '';
+                
+                // 簡単な自動返信デモ（送信後少し経ってから）
+                setTimeout(() => {
+                    if (message.includes('こんにちは') || message.includes('おはよう')) {
+                        addMessage('こんにちは！元気ですか？', 'テストユーザー', true);
+                    } else if (message.includes('テスト')) {
+                        addMessage('テストメッセージを受信しました！', 'ボット', true);
+                    }
+                }, 1000);
+            }
+        }
+        
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // ファイル送信機能
+        fileButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileUpload(file);
+            }
+        });
+        
+        // ペーストイベントで画像を受け付け
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData.items;
+            
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                
+                if (item.type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    const blob = item.getAsFile();
+                    const file = new File([blob], `paste_${Date.now()}.png`, { type: blob.type });
+                    handleFileUpload(file);
+                    break;
+                }
+            }
+        });
+        
+        // ファイルアップロード処理
+        function handleFileUpload(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const fileData = {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    data: e.target.result
+                };
+                
+                if (file.type.startsWith('image/')) {
+                    addMediaMessage(`🖼️ 画像: ${file.name}`, fileData, 'image');
+                } else {
+                    addMediaMessage(`📁 ファイル: ${file.name} (${formatFileSize(file.size)})`, fileData, 'file');
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // メディアメッセージ追加
+        function addMediaMessage(text, fileData, type) {
+            const now = new Date();
+            const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            
+            const message = { text, sender: currentUsername, time, fileData, type };
+            messageHistory.push(message);
+            saveMessages();
+            
+            addMediaMessageToUI(text, currentUsername, time, false, fileData, type);
+        }
+        
+        // メディアメッセージUI追加
+        function addMediaMessageToUI(text, sender, time, isReceived, fileData, type) {
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message', isReceived ? 'received' : 'sent');
+            
+            const senderDiv = document.createElement('div');
+            senderDiv.classList.add('message-sender');
+            senderDiv.textContent = sender;
+            
+            const mediaDiv = document.createElement('div');
+            mediaDiv.classList.add('media-message');
+            
+            if (type === 'image') {
+                const img = document.createElement('img');
+                img.src = fileData.data || fileData;
+                img.alt = fileData.name || 'image';
+                img.onload = () => console.log('画像が正常に読み込まれました');
+                img.onerror = () => {
+                    console.error('画像の読み込みに失敗しました');
+                    img.style.display = 'none';
+                    const errorText = document.createElement('div');
+                    errorText.textContent = '(画像が表示できません)';
+                    errorText.style.color = '#dc3545';
+                    mediaDiv.appendChild(errorText);
+                };
+                mediaDiv.appendChild(img);
+            } else {
+                const link = document.createElement('a');
+                link.href = fileData.data;
+                link.download = fileData.name;
+                link.className = 'file-link';
+                link.textContent = `ダウンロード: ${fileData.name}`;
+                mediaDiv.appendChild(link);
+            }
+            
+            const messageText = document.createElement('div');
+            messageText.textContent = text;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.classList.add('message-time');
+            timeDiv.textContent = time;
+            
+            messageContainer.appendChild(senderDiv);
+            messageContainer.appendChild(mediaDiv);
+            messageContainer.appendChild(messageText);
+            messageContainer.appendChild(timeDiv);
+            
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // ファイルサイズフォーマット
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 名前変更機能
+        function changeName() {
+            const newName = prompt('新しい名前を入力してください:', currentUsername);
+            if (newName && newName.trim() && newName.trim() !== currentUsername) {
+                const oldName = currentUsername;
+                currentUsername = newName.trim();
+                currentUserDisplay.textContent = `ログイン中: ${currentUsername}`;
+                addSystemMessage(`${oldName} が ${currentUsername} に名前を変更しました`);
+            }
+        }
+        
+        // 修正ボタン表示
+        function showFixButton() {
+            const indicator = document.createElement('div');
+            indicator.className = 'fix-indicator';
+            indicator.innerHTML = '💬 問題がありますか？ <button class="fix-button" onclick="location.reload()">更新</button>';
+            document.body.appendChild(indicator);
+            indicator.style.display = 'block';
+            
+            setTimeout(() => {
+                if (indicator.parentNode) {
+                    indicator.parentNode.removeChild(indicator);
+                }
+            }, 5000);
+        }
+        
+        // メッセージ再読み込み
+        function reloadMessages() {
+            chatMessages.innerHTML = '';
+            loadMessages();
+            addSystemMessage('メッセージを再読み込みしました');
+        }
+        
+        // チャットクリア
+        function clearChat() {
+            if (confirm('チャット履歴を削除しますか？')) {
+                messageHistory = [];
+                saveMessages();
+                chatMessages.innerHTML = '';
+                addSystemMessage('チャットがクリアされました');
+            }
+        }
+        
+        // 絵文字パネルの初期化
+        function initEmojiPanel() {
+            // 基本絵文字
+            const basicGrid = document.getElementById('basicEmojis');
+            basicEmojis.forEach(emoji => {
+                const item = document.createElement('div');
+                item.className = 'emoji-item';
+                item.textContent = emoji;
+                item.onclick = () => insertEmoji(emoji);
+                basicGrid.appendChild(item);
+            });
+            
+            // 動く絵文字
+            const animatedGrid = document.getElementById('animatedEmojis');
+            animatedEmojis.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'emoji-item';
+                div.innerHTML = `<span class="animated-emoji ${item.class}">${item.emoji}</span>`;
+                div.onclick = () => insertAnimatedEmoji(item.emoji, item.class);
+                div.title = item.name;
+                animatedGrid.appendChild(div);
+            });
+            
+            // 特別絵文字
+            const specialGrid = document.getElementById('specialEmojis');
+            specialEmojis.forEach(emoji => {
+                const item = document.createElement('div');
+                item.className = 'emoji-item';
+                item.textContent = emoji;
+                item.onclick = () => insertEmoji(emoji);
+                specialGrid.appendChild(item);
+            });
+            
+            // オリジナル絵文字
+            const customGrid = document.getElementById('customEmojis');
+            customEmojis.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'emoji-item';
+                div.innerHTML = `<span class="${item.class}">${item.text}</span>`;
+                div.onclick = () => insertCustomEmoji(item.text, item.class);
+                div.title = item.name;
+                customGrid.appendChild(div);
+            });
+            
+            // アイコン絵文字
+            const iconGrid = document.getElementById('iconEmojis');
+            iconEmojis.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'emoji-item';
+                div.innerHTML = `<span class="${item.class}"></span>`;
+                div.onclick = () => insertIconEmoji(item.icon, item.class);
+                div.title = item.name;
+                iconGrid.appendChild(div);
+            });
+        }
+        
+        // 絵文字をメッセージ入力欄に挿入
+        function insertEmoji(emoji) {
+            const input = messageInput;
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const text = input.value;
+            input.value = text.substring(0, start) + emoji + text.substring(end);
+            input.focus();
+            input.selectionStart = input.selectionEnd = start + emoji.length;
+            emojiPanel.style.display = 'none';
+        }
+        
+        // 動く絵文字をメッセージとして送信
+        function insertAnimatedEmoji(emoji, animationClass) {
+            const animatedMessage = `<span class="animated-emoji ${animationClass}">${emoji}</span>`;
+            addAnimatedMessage(animatedMessage, currentUsername, false);
+            emojiPanel.style.display = 'none';
+        }
+        
+        // オリジナル絵文字をメッセージとして送信
+        function insertCustomEmoji(text, cssClass) {
+            const customMessage = `<span class="${cssClass}">${text}</span>`;
+            addAnimatedMessage(customMessage, currentUsername, false);
+            emojiPanel.style.display = 'none';
+        }
+        
+        // アイコン絵文字をメッセージとして送信
+        function insertIconEmoji(icon, cssClass) {
+            const iconMessage = `<span class="${cssClass}"></span>`;
+            addAnimatedMessage(iconMessage, currentUsername, false);
+            emojiPanel.style.display = 'none';
+        }
+        
+        // 絵文字パネルの表示/非表示切り替え
+        emojiButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (emojiPanel.style.display === 'none' || !emojiPanel.style.display) {
+                emojiPanel.style.display = 'block';
+                toolsPanel.style.display = 'none';
+            } else {
+                emojiPanel.style.display = 'none';
+            }
+        });
+        
+        // ツールパネルの表示/非表示切り替え
+        toolsButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (toolsPanel.style.display === 'none' || !toolsPanel.style.display) {
+                toolsPanel.style.display = 'block';
+                emojiPanel.style.display = 'none';
+            } else {
+                toolsPanel.style.display = 'none';
+            }
+        });
+        
+        // クリックでパネルを閉じる
+        document.addEventListener('click', (e) => {
+            if (!emojiButton.contains(e.target) && !emojiPanel.contains(e.target)) {
+                emojiPanel.style.display = 'none';
+            }
+            if (!toolsButton.contains(e.target) && !toolsPanel.contains(e.target)) {
+                toolsPanel.style.display = 'none';
+            }
+        });
+        
+        
+        // 通知機能の初期化
+        function initNotifications() {
+            // 通知許可のチェック
+            if ('Notification' in window && Notification.permission === 'default') {
+                setTimeout(() => {
+                    notificationPermission.style.display = 'block';
+                }, 2000);
+            }
+        }
+        
+        // 通知を有効にする
+        function enableNotifications() {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    notificationPermission.style.display = 'none';
+                    new Notification('チャット通知が有効になりました！', {
+                        icon: '💬',
+                        body: '新しいメッセージを受信すると通知されます。'
+                    });
+                }
+            });
+        }
+        
+        // 通知プロンプトを閉じる
+        function dismissNotificationPrompt() {
+            notificationPermission.style.display = 'none';
+        }
+        
+        // 音声通知を再生
+        function showNotification(sender, message) {
+            // 音声通知を作成
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // 通知音の設定（短いピープ音）
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+            
+            // コンソールにも通知
+            console.log(`🔔 ${sender}からメッセージ: ${message}`);
+        }
+        
+        // 未読カウント更新
+        function updateUnreadCount(increment) {
+            unreadCount += increment;
+            if (unreadCount > 0) {
+                unreadIndicator.textContent = unreadCount;
+                unreadIndicator.style.display = 'inline-flex';
+                document.title = `(${unreadCount}) チャット`;
+            } else {
+                unreadIndicator.style.display = 'none';
+                document.title = 'チャット';
+            }
+        }
+        
+        // 全て既読にする
+        function markAllAsRead() {
+            unreadCount = 0;
+            updateUnreadCount(0);
+            lastReadTime = new Date();
+        }
+        
+        // 動く絵文字メッセージを追加（受信用）
+        function addAnimatedMessage(htmlContent, sender, isReceived) {
+            const now = new Date();
+            const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            
+            const message = { htmlContent, sender, time, isAnimated: true };
+            messageHistory.push(message);
+            saveMessages();
+            
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message', isReceived ? 'received' : 'sent');
+            
+            const senderDiv = document.createElement('div');
+            senderDiv.classList.add('message-sender');
+            senderDiv.textContent = sender;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.innerHTML = htmlContent;
+            messageDiv.style.fontSize = '30px';
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.classList.add('message-time');
+            timeDiv.textContent = time;
+            
+            messageContainer.appendChild(senderDiv);
+            messageContainer.appendChild(messageDiv);
+            messageContainer.appendChild(timeDiv);
+            
+            // 既読表示（送信メッセージのみ）
+            if (!isReceived) {
+                const readStatus = document.createElement('div');
+                readStatus.classList.add('read-status');
+                readStatus.textContent = '既読';
+                messageContainer.appendChild(readStatus);
+            } else {
+                // 受信メッセージの場合、未読カウント更新
+                if (!isWindowFocused) {
+                    updateUnreadCount(1);
+                }
+            }
+            
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // 音声通知（受信メッセージで、ウィンドウがフォーカスされていない場合）
+            if (isReceived && !isWindowFocused) {
+                showNotification(sender, '絵文字メッセージ');
+            }
+        }
+        
+        // メッセージ削除
+        function deleteMessage(messageId) {
+            if (confirm('このメッセージを削除しますか？')) {
+                // メッセージ履歴から削除
+                messageHistory = messageHistory.filter(msg => msg.id !== messageId);
+                saveMessages();
+                
+                // UIから削除
+                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (messageElement) {
+                    messageElement.remove();
+                }
+                
+                addSystemMessage('メッセージが削除されました');
+            }
+        }
+        
+        // アンケート作成
+        function createPoll() {
+            const question = prompt('アンケートの質問を入力してください:');
+            if (!question) return;
+            
+            const options = [];
+            let optionCount = 1;
+            while (optionCount <= 4) {
+                const option = prompt(`選択肢${optionCount}を入力してください (空欄で終了):`);
+                if (!option) break;
+                options.push(option);
+                optionCount++;
+            }
+            
+            if (options.length < 2) {
+                alert('選択肢は2つ以上必要です');
+                return;
+            }
+            
+            const pollId = 'poll_' + Date.now();
+            pollData[pollId] = {
+                question: question,
+                sender: currentUsername,
+                options: options.map((opt, idx) => ({
+                    id: idx,
+                    text: opt,
+                    votes: []
+                }))
+            };
+            
+            // アンケートUIを作成
+            const pollHtml = createPollUI(pollId, pollData[pollId]);
+            const now = new Date();
+            const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            
+            const message = {
+                type: 'poll',
+                pollId: pollId,
+                sender: currentUsername,
+                time: time,
+                id: Date.now()
+            };
+            messageHistory.push(message);
+            saveMessages();
+            
+            // アンケートを表示
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message', 'sent');
+            messageContainer.dataset.messageId = message.id;
+            
+            // 削除ボタンを追加
+            const messageActions = document.createElement('div');
+            messageActions.classList.add('message-actions');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('delete-btn');
+            deleteBtn.textContent = '削除';
+            deleteBtn.onclick = () => deleteMessage(message.id);
+            messageActions.appendChild(deleteBtn);
+            messageContainer.appendChild(messageActions);
+            
+            messageContainer.innerHTML += pollHtml;
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            toolsPanel.style.display = 'none';
+        }
+        
+        // アンケートUI作成
+        function createPollUI(pollId, poll) {
+            let html = `
+                <div class="poll-container">
+                    <div class="message-sender">${poll.sender || 'アンケート'}</div>
+                    <div class="poll-title">📊 ${poll.question}</div>
+            `;
+            
+            poll.options.forEach((option, idx) => {
+                const voteCount = option.votes.length;
+                const voted = option.votes.includes(currentUsername);
+                html += `
+                    <div class="poll-option ${voted ? 'voted' : ''}" onclick="votePoll('${pollId}', ${idx})">
+                        <span>${option.text}</span>
+                        <span class="poll-votes">${voteCount}票</span>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+        
+        // 投票
+        function votePoll(pollId, optionId) {
+            const poll = pollData[pollId];
+            if (!poll) return;
+            
+            // 既存の投票を削除
+            poll.options.forEach(option => {
+                option.votes = option.votes.filter(v => v !== currentUsername);
+            });
+            
+            // 新しい投票を追加
+            poll.options[optionId].votes.push(currentUsername);
+            
+            // データを保存
+            saveMessages();
+            
+            // UIを更新
+            const pollContainers = document.querySelectorAll('.poll-container');
+            pollContainers.forEach(container => {
+                const parent = container.parentElement;
+                if (parent && parent.dataset.messageId) {
+                    // 既存のHTMLを更新
+                    const newPollHtml = createPollUI(pollId, poll);
+                    const temp = document.createElement('div');
+                    temp.innerHTML = newPollHtml;
+                    container.replaceWith(temp.firstChild);
+                }
+            });
+        }
+        
+        // クイズ開始
+        function startQuiz() {
+            const quizzes = [
+                { q: '日本の首都は？', a: '東京' },
+                { q: '1+1は？', a: '2' },
+                { q: '虹の色は何色？', a: '7' },
+                { q: '地球は太陽の周りを何日で一周する？', a: '365' }
+            ];
+            
+            const quiz = quizzes[Math.floor(Math.random() * quizzes.length)];
+            currentGame = { type: 'quiz', answer: quiz.a };
+            
+            const gameHtml = `
+                <div class="game-container">
+                    <div class="game-title">❓ クイズタイム！</div>
+                    <div>${quiz.q}</div>
+                    <div style="margin-top: 10px; font-size: 12px;">チャットで答えを入力してください！</div>
+                </div>
+            `;
+            
+            addGameMessage(gameHtml);
+            toolsPanel.style.display = 'none';
+        }
+        
+        // しりとり開始
+        function startShiritori() {
+            currentGame = { type: 'shiritori', lastWord: 'しりとり', lastChar: 'り' };
+            
+            const gameHtml = `
+                <div class="game-container">
+                    <div class="game-title">🔤 しりとりゲーム！</div>
+                    <div>最初の言葉: <strong>しりとり</strong></div>
+                    <div>「り」から始まる言葉を入力してください！</div>
+                </div>
+            `;
+            
+            addGameMessage(gameHtml);
+            toolsPanel.style.display = 'none';
+        }
+        
+        // じゃんけん開始
+        function startJanken() {
+            currentGame = { type: 'janken' };
+            
+            const gameHtml = `
+                <div class="game-container">
+                    <div class="game-title">✊ じゃんけんポン！</div>
+                    <button class="game-button" onclick="playJanken('グー')">✊ グー</button>
+                    <button class="game-button" onclick="playJanken('チョキ')">✌️ チョキ</button>
+                    <button class="game-button" onclick="playJanken('パー')">🖐️ パー</button>
+                </div>
+            `;
+            
+            addGameMessage(gameHtml);
+            toolsPanel.style.display = 'none';
+        }
+        
+        // じゃんけんプレイ
+        function playJanken(playerChoice) {
+            const choices = ['グー', 'チョキ', 'パー'];
+            const cpuChoice = choices[Math.floor(Math.random() * 3)];
+            
+            let result = '';
+            if (playerChoice === cpuChoice) {
+                result = 'あいこ！';
+            } else if (
+                (playerChoice === 'グー' && cpuChoice === 'チョキ') ||
+                (playerChoice === 'チョキ' && cpuChoice === 'パー') ||
+                (playerChoice === 'パー' && cpuChoice === 'グー')
+            ) {
+                result = 'あなたの勝ち！🎉';
+            } else {
+                result = 'あなたの負け...😢';
+            }
+            
+            addMessage(`じゃんけん結果: あなた(${playerChoice}) vs CPU(${cpuChoice}) → ${result}`, 'ゲーム', true);
+            currentGame = null;
+        }
+        
+        // ゲームメッセージ追加
+        function addGameMessage(html) {
+            const now = new Date();
+            const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message', 'received');
+            messageContainer.innerHTML = html;
+            
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // 位置情報共有
+        function shareLocation() {
+            if (!navigator.geolocation) {
+                alert('お使いのブラウザは位置情報をサポートしていません');
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                    
+                    const locationHtml = `
+                        <div class="location-container">
+                            📍 現在位置を共有しました<br>
+                            <a href="${mapUrl}" target="_blank" class="location-link">地図で見る</a>
+                        </div>
+                    `;
+                    
+                    const now = new Date();
+                    const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                    const messageId = Date.now();
+                    
+                    const message = {
+                        type: 'location',
+                        html: locationHtml,
+                        sender: currentUsername,
+                        time: time,
+                        id: messageId
+                    };
+                    
+                    messageHistory.push(message);
+                    saveMessages();
+                    
+                    const messageContainer = document.createElement('div');
+                    messageContainer.classList.add('message', 'sent');
+                    messageContainer.dataset.messageId = messageId;
+                    messageContainer.innerHTML = locationHtml;
+                    chatMessages.appendChild(messageContainer);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    toolsPanel.style.display = 'none';
+                },
+                (error) => {
+                    alert('位置情報の取得に失敗しました: ' + error.message);
+                }
+            );
+        }
+        
+        // メッセージ送信処理を更新（ゲーム対応）
+        const originalSendMessage = sendMessage;
+        sendMessage = function() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            // ゲーム中の処理
+            if (currentGame) {
+                if (currentGame.type === 'quiz') {
+                    if (message === currentGame.answer) {
+                        addMessage('正解！🎉', 'ゲーム', true);
+                        currentGame = null;
+                    } else {
+                        addMessage('不正解...もう一度！', 'ゲーム', true);
+                    }
+                } else if (currentGame.type === 'shiritori') {
+                    if (message.charAt(0) === currentGame.lastChar) {
+                        const lastChar = message.charAt(message.length - 1);
+                        if (lastChar === 'ん') {
+                            addMessage(`「${message}」で終わりました！あなたの負けです😢`, 'ゲーム', true);
+                            currentGame = null;
+                        } else {
+                            currentGame.lastWord = message;
+                            currentGame.lastChar = lastChar;
+                            addMessage(`「${message}」→ 次は「${lastChar}」から始まる言葉！`, 'ゲーム', true);
+                        }
+                    } else {
+                        addMessage(`「${currentGame.lastChar}」から始まる言葉を入力してください！`, 'ゲーム', true);
+                    }
+                    messageInput.value = '';
+                    return;
+                }
+            }
+            
+            originalSendMessage();
+        };
+        
+        // アバターセレクター初期化
+        function initAvatarSelector() {
+            const avatarOptions = document.querySelectorAll('.avatar-option');
+            avatarOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    avatarOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentAvatar = this.dataset.avatar;
+                });
+            });
+            
+            // デフォルト選択
+            avatarOptions[0].classList.add('selected');
+        }
+        
+        // アバター情報保存
+        function saveUserAvatars() {
+            localStorage.setItem('userAvatars', JSON.stringify(userAvatars));
+        }
+        
+        // アバター情報読み込み
+        function loadUserAvatars() {
+            const saved = localStorage.getItem('userAvatars');
+            if (saved) {
+                userAvatars = JSON.parse(saved);
+            }
+        }
+        
+        // アバター色生成
+        function getAvatarColor(username) {
+            const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+            let hash = 0;
+            for (let i = 0; i < username.length; i++) {
+                hash = username.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return colors[Math.abs(hash) % colors.length];
+        }
+        
+        // タイマー開始
+        function startTimer() {
+            const minutes = prompt('タイマーの時間を分で入力してください:');
+            if (!minutes || isNaN(minutes)) return;
+            
+            const timerId = 'timer_' + Date.now();
+            const endTime = Date.now() + (parseInt(minutes) * 60 * 1000);
+            
+            activeTimers[timerId] = {
+                endTime: endTime,
+                interval: null
+            };
+            
+            const timerHtml = createTimerUI(timerId, parseInt(minutes));
+            
+            const now = new Date();
+            const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            const messageId = Date.now();
+            
+            const message = {
+                type: 'timer',
+                timerId: timerId,
+                minutes: parseInt(minutes),
+                endTime: endTime,
+                sender: currentUsername,
+                time: time,
+                id: messageId
+            };
+            
+            messageHistory.push(message);
+            saveMessages();
+            
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message', 'sent');
+            messageContainer.dataset.messageId = messageId;
+            messageContainer.innerHTML = timerHtml;
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            startTimerInterval(timerId);
+            toolsPanel.style.display = 'none';
+        }
+        
+        // タイマーUI作成
+        function createTimerUI(timerId, minutes) {
+            return `
+                <div class="timer-container" id="${timerId}">
+                    <div class="message-sender">${currentUsername}</div>
+                    <div>⏰ タイマー設定: ${minutes}分</div>
+                    <div class="timer-display" id="${timerId}_display">--:--</div>
+                    <div class="timer-controls">
+                        <button class="timer-button" onclick="pauseTimer('${timerId}')">⏸️ 一時停止</button>
+                        <button class="timer-button" onclick="stopTimer('${timerId}')">⏹️ 停止</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // タイマー更新
+        function startTimerInterval(timerId) {
+            const timer = activeTimers[timerId];
+            if (!timer) return;
+            
+            timer.interval = setInterval(() => {
+                const remaining = timer.endTime - Date.now();
+                const display = document.getElementById(timerId + '_display');
+                
+                if (display) {
+                    if (remaining <= 0) {
+                        display.textContent = '終了！';
+                        addSystemMessage('⏰ タイマーが終了しました！');
+                        if (Notification.permission === 'granted') {
+                            new Notification('タイマー終了', {
+                                body: '設定した時間が経過しました',
+                                icon: '⏰'
+                            });
+                        }
+                        clearInterval(timer.interval);
+                        delete activeTimers[timerId];
+                    } else {
+                        const minutes = Math.floor(remaining / 60000);
+                        const seconds = Math.floor((remaining % 60000) / 1000);
+                        display.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                }
+            }, 1000);
+        }
+        
+        // タイマー一時停止
+        function pauseTimer(timerId) {
+            const timer = activeTimers[timerId];
+            if (timer && timer.interval) {
+                clearInterval(timer.interval);
+                timer.interval = null;
+            }
+        }
+        
+        // タイマー停止
+        function stopTimer(timerId) {
+            const timer = activeTimers[timerId];
+            if (timer) {
+                if (timer.interval) {
+                    clearInterval(timer.interval);
+                }
+                delete activeTimers[timerId];
+                const display = document.getElementById(timerId + '_display');
+                if (display) {
+                    display.textContent = '停止済み';
+                }
+            }
+        }
+        
+        // カスタムクイズ作成
+        function createCustomQuiz() {
+            const question = prompt('クイズの問題を入力してください:');
+            if (!question) return;
+            
+            const answer = prompt('答えを入力してください:');
+            if (!answer) return;
+            
+            const quizId = 'quiz_' + Date.now();
+            const quizHtml = `
+                <div class="custom-quiz-container" data-quiz-id="${quizId}">
+                    <div class="message-sender">${currentUsername} からのクイズ</div>
+                    <div class="quiz-question">Q: ${question}</div>
+                    <input type="text" class="quiz-answer-input" placeholder="答えを入力..." 
+                           onkeypress="if(event.key==='Enter')checkCustomQuiz('${quizId}', '${answer}', this.value)">
+                    <button class="game-button" style="margin-top: 10px;" 
+                            onclick="checkCustomQuiz('${quizId}', '${answer}', this.previousElementSibling.value)">
+                        答えを確認
+                    </button>
+                </div>
+            `;
+            
+            const now = new Date();
+            const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            const messageId = Date.now();
+            
+            const message = {
+                type: 'custom-quiz',
+                quizId: quizId,
+                question: question,
+                answer: answer,
+                sender: currentUsername,
+                time: time,
+                id: messageId
+            };
+            
+            messageHistory.push(message);
+            saveMessages();
+            
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message', 'sent');
+            messageContainer.dataset.messageId = messageId;
+            messageContainer.innerHTML = quizHtml;
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            toolsPanel.style.display = 'none';
+        }
+        
+        // カスタムクイズ確認
+        function checkCustomQuiz(quizId, correctAnswer, userAnswer) {
+            if (!userAnswer) return;
+            
+            const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+            const resultMessage = isCorrect ? '正解！🎉' : '不正解...😢';
+            
+            addMessage(resultMessage, 'クイズ結果', true);
+            
+            if (isCorrect) {
+                const quizContainer = document.querySelector(`[data-quiz-id="${quizId}"]`);
+                if (quizContainer) {
+                    const input = quizContainer.querySelector('.quiz-answer-input');
+                    const button = quizContainer.querySelector('.game-button');
+                    if (input) input.disabled = true;
+                    if (button) button.disabled = true;
+                }
+            }
+        };
+        
+        // 絵文字作成機能の初期化
+        function initEmojiCreator() {
+            const textInput = document.getElementById('emojiText');
+            const colorInput = document.getElementById('emojiColor');
+            const bgColorInput = document.getElementById('emojiBgColor');
+            const animationSelect = document.getElementById('emojiAnimation');
+            const preview = document.getElementById('emojiPreview');
+            
+            function updatePreview() {
+                const text = textInput.value || '?';
+                const color = colorInput.value;
+                const bgColor = bgColorInput.value;
+                const animation = animationSelect.value;
+                
+                preview.textContent = text;
+                preview.style.color = color;
+                preview.style.backgroundColor = bgColor;
+                preview.style.border = `2px solid ${color}`;
+                
+                // アニメーションクラスをリセット
+                preview.className = 'custom-emoji-preview';
+                if (animation !== 'none') {
+                    preview.classList.add('animated-emoji', animation);
+                }
+            }
+            
+            textInput.addEventListener('input', updatePreview);
+            colorInput.addEventListener('change', updatePreview);
+            bgColorInput.addEventListener('change', updatePreview);
+            animationSelect.addEventListener('change', updatePreview);
+            
+            updatePreview();
+        }
+        
+        // 自作絵文字を作成
+        function createUserEmoji() {
+            const text = document.getElementById('emojiText').value.trim();
+            const color = document.getElementById('emojiColor').value;
+            const bgColor = document.getElementById('emojiBgColor').value;
+            const animation = document.getElementById('emojiAnimation').value;
+            
+            if (!text) {
+                alert('文字を入力してください');
+                return;
+            }
+            
+            const emoji = {
+                id: Date.now(),
+                text: text,
+                color: color,
+                bgColor: bgColor,
+                animation: animation,
+                name: `自作${text}`
+            };
+            
+            userEmojis.push(emoji);
+            saveUserEmojis();
+            updateUserEmojiGrid();
+            
+            // 入力をリセット
+            document.getElementById('emojiText').value = '';
+            document.getElementById('emojiColor').value = '#007bff';
+            document.getElementById('emojiBgColor').value = '#ffffff';
+            document.getElementById('emojiAnimation').value = 'none';
+            
+            // プレビューをリセット
+            const preview = document.getElementById('emojiPreview');
+            preview.textContent = '?';
+            preview.style.color = '';
+            preview.style.backgroundColor = '';
+            preview.style.border = '';
+            preview.className = 'custom-emoji-preview';
+        }
+        
+        // 自作絵文字グリッドを更新
+        function updateUserEmojiGrid() {
+            const grid = document.getElementById('userEmojiGrid');
+            grid.innerHTML = '';
+            
+            userEmojis.forEach(emoji => {
+                const item = document.createElement('div');
+                item.className = 'user-emoji-item';
+                item.style.color = emoji.color;
+                item.style.backgroundColor = emoji.bgColor;
+                item.style.border = `1px solid ${emoji.color}`;
+                item.textContent = emoji.text;
+                item.title = emoji.name;
+                
+                // 削除ボタン
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-user-emoji';
+                deleteBtn.textContent = '×';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteUserEmoji(emoji.id);
+                };
+                item.appendChild(deleteBtn);
+                
+                // クリックで絵文字として送信
+                item.onclick = () => {
+                    const emojiHtml = `<span style="color: ${emoji.color}; background-color: ${emoji.bgColor}; padding: 2px 4px; border-radius: 50%; border: 1px solid ${emoji.color};" class="${emoji.animation !== 'none' ? 'animated-emoji ' + emoji.animation : ''}">${emoji.text}</span>`;
+                    addAnimatedMessage(emojiHtml, currentUsername, false);
+                    emojiPanel.style.display = 'none';
+                };
+                
+                grid.appendChild(item);
+            });
+        }
+        
+        // 自作絵文字を削除
+        function deleteUserEmoji(emojiId) {
+            if (confirm('この絵文字を削除しますか？')) {
+                userEmojis = userEmojis.filter(emoji => emoji.id !== emojiId);
+                saveUserEmojis();
+                updateUserEmojiGrid();
+            }
+        }
+    </script>
+</body>
+</html>

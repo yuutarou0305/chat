@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チャット</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        #nameSection {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #chatSection {
+            display: none;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+        }
+        
+        #messagesArea {
+            height: 400px;
+            overflow-y: scroll;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+        }
+        
+        .sent {
+            background-color: #007bff;
+            color: white;
+            text-align: right;
+        }
+        
+        .received {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        #inputSection {
+            padding: 20px;
+            border-top: 1px solid #ddd;
+        }
+        
+        #messageForm {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #messageText {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="nameSection">
+        <h2>お名前を入力してください</h2>
+        <form onsubmit="startChat(); return false;">
+            <input type="text" id="nameInput" placeholder="名前を入力..." required>
+            <br>
+            <button type="submit">チャットを開始</button>
+        </form>
+    </div>
+    
+    <div id="chatSection">
+        <div id="header">
+            <h2>チャット</h2>
+            <div id="userDisplay"></div>
+        </div>
+        <div id="messagesArea"></div>
+        <div id="inputSection">
+            <form id="messageForm" onsubmit="sendMessage(); return false;">
+                <input type="text" id="messageText" placeholder="メッセージを入力..." required>
+                <button type="submit">送信</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        var userName = '';
+        
+        function startChat() {
+            var nameInput = document.getElementById('nameInput');
+            userName = nameInput.value.trim();
+            
+            if (userName) {
+                document.getElementById('nameSection').style.display = 'none';
+                document.getElementById('chatSection').style.display = 'block';
+                document.getElementById('userDisplay').innerHTML = 'ログイン中: ' + userName;
+                document.getElementById('messageText').focus();
+                
+                // ウェルカムメッセージ
+                addMessage('ようこそ、' + userName + 'さん！', 'システム', false);
+            }
+        }
+        
+        function sendMessage() {
+            var messageText = document.getElementById('messageText');
+            var message = messageText.value.trim();
+            
+            if (message) {
+                // 自分のメッセージを追加
+                addMessage(message, userName, true);
+                messageText.value = '';
+                
+                // ボットの返信
+                setTimeout(function() {
+                    var responses = [
+                        'こんにちは、' + userName + 'さん！',
+                        'メッセージありがとうございます。',
+                        'いいですね！',
+                        'なるほど、そうですね。',
+                        'もっと詳しく教えてください。'
+                    ];
+                    var randomIndex = Math.floor(Math.random() * responses.length);
+                    addMessage(responses[randomIndex], 'ボット', false);
+                }, 1000);
+            }
+        }
+        
+        function addMessage(text, sender, isSent) {
+            var messagesArea = document.getElementById('messagesArea');
+            var messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (isSent ? 'sent' : 'received');
+            messageDiv.innerHTML = '<strong>' + sender + ':</strong><br>' + text;
+            messagesArea.appendChild(messageDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+    </script>
+</body>
+</html>

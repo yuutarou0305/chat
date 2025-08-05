@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シンプルチャット</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f0f0f0;
+        }
+        
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .username-display {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: white;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        
+        .message.my-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.other-message {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        
+        .message-sender {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+        
+        .message-time {
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 5px;
+        }
+        
+        .message img {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        
+        .message video {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        
+        .message audio {
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        .input-area {
+            display: flex;
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #ddd;
+            gap: 10px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .file-button {
+            background-color: #6c757d;
+        }
+        
+        .file-button:hover {
+            background-color: #5a6268;
+        }
+        
+        .voice-button {
+            background-color: #e74c3c;
+        }
+        
+        .voice-button.recording {
+            background-color: #c0392b;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .name-input {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .name-input-modal {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .name-input-modal input {
+            margin: 10px 0;
+            padding: 10px;
+            width: 250px;
+            font-size: 16px;
+        }
+        
+        .system-message {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="name-input" id="nameInput">
+        <div class="name-input-modal">
+            <h2>お名前を入力してください</h2>
+            <input type="text" id="usernameInput" placeholder="名前を入力..." autofocus>
+            <br>
+            <button onclick="startChat()">開始</button>
+        </div>
+    </div>
+    
+    <div class="header">
+        <h1>シンプルチャット</h1>
+        <div class="username-display" id="usernameDisplay"></div>
+        <button onclick="changeName()" style="font-size: 12px; padding: 5px 10px; margin-top: 5px;">名前変更</button>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages"></div>
+    
+    <div class="input-area">
+        <input type="file" id="fileInput" accept="image/*,video/*,audio/*" style="display: none;" onchange="handleFile(event)">
+        <button class="file-button" onclick="document.getElementById('fileInput').click()">📎</button>
+        <button class="voice-button" id="voiceBtn" onclick="toggleRecording()">🎤</button>
+        <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="if(event.key==='Enter')sendMessage()">
+        <button onclick="sendMessage()">送信</button>
+    </div>
+    
+    <script>
+        let myUsername = '';
+        let messages = [];
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        
+        function startChat() {
+            const name = document.getElementById('usernameInput').value.trim();
+            if (name) {
+                myUsername = name;
+                document.getElementById('nameInput').style.display = 'none';
+                document.getElementById('usernameDisplay').textContent = `ログイン中: ${myUsername}`;
+                addSystemMessage(`${myUsername}さんがチャットに参加しました`);
+            }
+        }
+        
+        function changeName() {
+            const newName = prompt('新しい名前を入力してください:', myUsername);
+            if (newName && newName.trim() && newName.trim() !== myUsername) {
+                const oldName = myUsername;
+                myUsername = newName.trim();
+                document.getElementById('usernameDisplay').textContent = `ログイン中: ${myUsername}`;
+                addSystemMessage(`${oldName}が${myUsername}に名前を変更しました`);
+            }
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (text) {
+                addMessage(text, myUsername, 'my-message');
+                input.value = '';
+                
+                // デモ用の自動返信
+                setTimeout(() => {
+                    if (text.includes('こんにちは') || text.includes('おはよう')) {
+                        addMessage('こんにちは！元気ですか？', 'テストユーザー', 'other-message');
+                    } else if (text.includes('テスト')) {
+                        addMessage('テストメッセージを受信しました！', 'ボット', 'other-message');
+                    }
+                }, 1000);
+            }
+        }
+        
+        function addMessage(text, sender, type, mediaData = null, mediaType = null) {
+            const now = new Date();
+            const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            
+            const message = {
+                text: text,
+                sender: sender,
+                time: time,
+                type: type,
+                mediaData: mediaData,
+                mediaType: mediaType
+            };
+            
+            messages.push(message);
+            displayMessage(message);
+        }
+        
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.type}`;
+            
+            const senderDiv = document.createElement('div');
+            senderDiv.className = 'message-sender';
+            senderDiv.textContent = message.sender;
+            
+            const textDiv = document.createElement('div');
+            textDiv.textContent = message.text;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = message.time;
+            
+            messageDiv.appendChild(senderDiv);
+            messageDiv.appendChild(textDiv);
+            
+            if (message.mediaData) {
+                if (message.mediaType === 'image') {
+                    const img = document.createElement('img');
+                    img.src = message.mediaData;
+                    messageDiv.appendChild(img);
+                } else if (message.mediaType === 'video') {
+                    const video = document.createElement('video');
+                    video.src = message.mediaData;
+                    video.controls = true;
+                    messageDiv.appendChild(video);
+                } else if (message.mediaType === 'audio') {
+                    const audio = document.createElement('audio');
+                    audio.src = message.mediaData;
+                    audio.controls = true;
+                    messageDiv.appendChild(audio);
+                }
+            }
+            
+            messageDiv.appendChild(timeDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function addSystemMessage(text) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'system-message';
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileData = e.target.result;
+                let messageText = '';
+                let mediaType = '';
+                
+                if (file.type.startsWith('image/')) {
+                    messageText = `画像: ${file.name}`;
+                    mediaType = 'image';
+                } else if (file.type.startsWith('video/')) {
+                    messageText = `動画: ${file.name}`;
+                    mediaType = 'video';
+                } else if (file.type.startsWith('audio/')) {
+                    messageText = `音声: ${file.name}`;
+                    mediaType = 'audio';
+                } else {
+                    messageText = `ファイル: ${file.name}`;
+                }
+                
+                addMessage(messageText, myUsername, 'my-message', fileData, mediaType);
+                
+                // デモ用の反応
+                setTimeout(() => {
+                    if (mediaType === 'image') {
+                        addMessage('素敵な画像ですね！', 'テストユーザー', 'other-message');
+                    } else if (mediaType === 'video') {
+                        addMessage('動画を見ました！', 'テストユーザー', 'other-message');
+                    }
+                }, 1500);
+            };
+            
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+        
+        async function toggleRecording() {
+            const voiceBtn = document.getElementById('voiceBtn');
+            
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        
+                        addMessage('音声メッセージ', myUsername, 'my-message', audioUrl, 'audio');
+                        
+                        // デモ用の反応
+                        setTimeout(() => {
+                            addMessage('音声メッセージを聞きました！', 'テストユーザー', 'other-message');
+                        }, 1000);
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    voiceBtn.classList.add('recording');
+                    voiceBtn.textContent = '⏹️';
+                    
+                } catch (error) {
+                    alert('マイクへのアクセスが拒否されました');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '🎤';
+            }
+        }
+        
+        // Enterキーでの名前入力
+        document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startChat();
+            }
+        });
+    </script>
+</body>
+</html>

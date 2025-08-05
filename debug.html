@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>デバッグページ</title>
+    <style>
+        body {
+            margin: 50px;
+            font-size: 18px;
+        }
+        button {
+            padding: 20px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            z-index: 9999;
+            position: relative;
+        }
+        input {
+            padding: 15px;
+            font-size: 18px;
+            margin: 10px;
+            width: 300px;
+            z-index: 9999;
+            position: relative;
+        }
+        .test-area {
+            background: #f0f0f0;
+            padding: 30px;
+            margin: 20px 0;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chrome デバッグテスト</h1>
+    
+    <div class="test-area">
+        <h2>1. 基本的なボタン</h2>
+        <button type="button" onclick="document.getElementById('result1').innerHTML = 'ボタンがクリックされました！'">
+            ここをクリック
+        </button>
+        <div id="result1">結果がここに表示されます</div>
+    </div>
+    
+    <div class="test-area">
+        <h2>2. 入力フィールド</h2>
+        <input type="text" id="testInput" value="" placeholder="ここに文字を入力">
+        <button type="button" onclick="document.getElementById('result2').innerHTML = document.getElementById('testInput').value">
+            入力内容を表示
+        </button>
+        <div id="result2">入力した内容がここに表示されます</div>
+    </div>
+    
+    <div class="test-area">
+        <h2>3. JavaScriptの動作確認</h2>
+        <div id="jsTest">JavaScriptが無効の場合、このメッセージが表示されます</div>
+    </div>
+    
+    <script>
+        // JavaScriptが有効な場合
+        document.getElementById('jsTest').innerHTML = '<span style="color: green;">✓ JavaScriptは正常に動作しています</span>';
+        
+        // ページ読み込み時のデバッグ情報
+        console.log('ページが読み込まれました');
+        console.log('ユーザーエージェント:', navigator.userAgent);
+    </script>
+</body>
+</html>

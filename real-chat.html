@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リアルタイムチャット</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f0f0f0;
+        }
+        
+        .name-input-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .name-input-modal {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .main-container {
+            flex: 1;
+            display: none;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        .user-list-container {
+            width: 300px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .user-list-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #34495e;
+        }
+        
+        .user-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background-color: #34495e;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-status {
+            width: 10px;
+            height: 10px;
+            background-color: #2ecc71;
+            border-radius: 50%;
+        }
+        
+        .user-status.busy {
+            background-color: #e74c3c;
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .call-button, .message-button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .call-button {
+            background-color: #27ae60;
+            color: white;
+        }
+        
+        .call-button:hover {
+            background-color: #2ecc71;
+        }
+        
+        .call-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .message-button {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .message-button:hover {
+            background-color: #5dade2;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+        }
+        
+        .chat-header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-title {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .call-status {
+            display: none;
+            padding: 10px 20px;
+            background-color: #27ae60;
+            color: white;
+            border-radius: 5px;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .call-status.active {
+            display: flex;
+        }
+        
+        .end-call-button {
+            padding: 5px 15px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .connection-status {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .status-indicator.connected {
+            background-color: #2ecc71;
+        }
+        
+        .status-indicator.disconnected {
+            background-color: #e74c3c;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+        
+        .message-sender {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+        
+        .message.sent {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.received {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        
+        .message.system {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            text-align: center;
+            margin: 10px auto;
+            font-style: italic;
+            font-size: 14px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #e0e0e0;
+            gap: 10px;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+        }
+        
+        .send-button, .voice-call-button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .voice-call-button {
+            background-color: #27ae60;
+        }
+        
+        .voice-call-button:hover {
+            background-color: #2ecc71;
+        }
+        
+        .send-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .file-button {
+            padding: 10px 15px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .file-button:hover {
+            background-color: #5a6268;
+        }
+        
+        .message-media {
+            margin-top: 10px;
+            max-width: 100%;
+        }
+        
+        .message-media img {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+        
+        .message-media video {
+            max-width: 100%;
+            border-radius: 10px;
+            outline: none;
+        }
+        
+        .message-media audio {
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .voice-record-button {
+            padding: 10px 15px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .voice-record-button.recording {
+            background-color: #c0392b;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .incoming-call-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 2000;
+        }
+        
+        .incoming-call-modal.active {
+            display: block;
+        }
+        
+        .call-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .accept-button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .reject-button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        audio {
+            display: none;
+        }
+        
+        input[type="text"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 100%;
+        }
+        
+        .modal-button {
+            padding: 10px 30px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .modal-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="name-input-overlay" id="nameInputOverlay">
+        <div class="name-input-modal">
+            <h2>お名前を入力してください</h2>
+            <input type="text" id="usernameInput" placeholder="名前を入力..." autofocus>
+            <button class="modal-button" onclick="startApp()">チャットを開始</button>
+        </div>
+    </div>
+    
+    <div class="main-container" id="mainContainer">
+        <div class="user-list-container">
+            <div class="user-list-header">オンラインユーザー</div>
+            <div id="userList"></div>
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <h1>リアルタイムチャット</h1>
+                    <div class="connection-status">
+                        <span class="status-indicator" id="statusIndicator"></span>
+                        <span id="connectionStatus">接続中...</span>
+                    </div>
+                </div>
+                <div class="call-status" id="callStatus">
+                    <span id="callStatusText">通話中...</span>
+                    <button class="end-call-button" onclick="endCall()">通話終了</button>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-container">
+                <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="if(event.key==='Enter')sendMessage()">
+                <input type="file" id="fileInput" accept="image/*,video/*,audio/*" style="display: none;" onchange="handleFileSelect(event)">
+                <button class="file-button" onclick="document.getElementById('fileInput').click()">📎</button>
+                <button class="voice-record-button" id="voiceRecordButton" onclick="toggleVoiceRecording()">🎤</button>
+                <button class="send-button" onclick="sendMessage()">送信</button>
+                <button class="voice-call-button" onclick="startRandomCall()" id="voiceCallButton">音声通話</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="incoming-call-modal" id="incomingCallModal">
+        <h3 id="callerName">からの着信</h3>
+        <p>音声通話のリクエストが届いています</p>
+        <div class="call-actions">
+            <button class="accept-button" onclick="acceptCall()">応答</button>
+            <button class="reject-button" onclick="rejectCall()">拒否</button>
+        </div>
+    </div>
+    
+    <audio id="remoteAudio" autoplay></audio>
+    
+    <script>
+        let ws = null;
+        let currentUsername = '';
+        let myUserId = null;
+        let users = new Map();
+        let peerConnection = null;
+        let localStream = null;
+        let currentCallerId = null;
+        let isInCall = false;
+        let isConnected = false;
+        let pendingFile = null;
+        let pendingFileType = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        
+        const iceServers = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+        
+        function startApp() {
+            const name = document.getElementById('usernameInput').value.trim();
+            if (name) {
+                currentUsername = name;
+                document.getElementById('nameInputOverlay').style.display = 'none';
+                document.getElementById('mainContainer').style.display = 'flex';
+                connectWebSocket();
+            }
+        }
+        
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:3001');
+            
+            ws.onopen = () => {
+                isConnected = true;
+                updateConnectionStatus(true);
+                ws.send(JSON.stringify({
+                    type: 'join',
+                    username: currentUsername
+                }));
+            };
+            
+            ws.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+                await handleWebSocketMessage(data);
+            };
+            
+            ws.onclose = () => {
+                isConnected = false;
+                updateConnectionStatus(false);
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateConnectionStatus(false);
+            };
+        }
+        
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const status = document.getElementById('connectionStatus');
+            
+            if (connected) {
+                indicator.classList.add('connected');
+                indicator.classList.remove('disconnected');
+                status.textContent = '接続済み';
+            } else {
+                indicator.classList.remove('connected');
+                indicator.classList.add('disconnected');
+                status.textContent = '切断中...';
+            }
+        }
+        
+        async function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'userId':
+                    myUserId = data.userId;
+                    break;
+                    
+                case 'userList':
+                    updateUserList(data.users);
+                    break;
+                    
+                case 'userJoined':
+                    users.set(data.userId, { username: data.username, inCall: false });
+                    updateUserListUI();
+                    addSystemMessage(`${data.username} さんが参加しました`);
+                    break;
+                    
+                case 'userLeft':
+                    users.delete(data.userId);
+                    updateUserListUI();
+                    addSystemMessage(`${data.username} さんが退出しました`);
+                    break;
+                    
+                case 'message':
+                    console.log('Received message:', data);
+                    console.log('File data exists:', !!data.fileData);
+                    console.log('File type:', data.fileType);
+                    addMessage(data.text, data.sender, data.senderId !== myUserId, data.fileData, data.fileType);
+                    break;
+                    
+                case 'incomingCall':
+                    if (!isInCall) {
+                        currentCallerId = data.callerId;
+                        document.getElementById('callerName').textContent = data.callerName + ' さんからの着信';
+                        document.getElementById('incomingCallModal').classList.add('active');
+                    }
+                    break;
+                    
+                case 'callAccepted':
+                    await startPeerConnection(true);
+                    showCallStatus();
+                    break;
+                    
+                case 'callRejected':
+                    alert('通話が拒否されました');
+                    cleanupCall();
+                    break;
+                    
+                case 'callEnded':
+                    addSystemMessage('通話が終了しました');
+                    cleanupCall();
+                    break;
+                    
+                case 'webrtcSignal':
+                    await handleWebRTCSignal(data.signal);
+                    break;
+                    
+                case 'callError':
+                    alert(data.message);
+                    break;
+            }
+        }
+        
+        function updateUserList(userList) {
+            users.clear();
+            userList.forEach(user => {
+                if (user.id !== myUserId) {
+                    users.set(user.id, { username: user.username, inCall: user.inCall });
+                }
+            });
+            updateUserListUI();
+        }
+        
+        function updateUserListUI() {
+            const userListDiv = document.getElementById('userList');
+            userListDiv.innerHTML = '';
+            
+            users.forEach((user, userId) => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <div class="user-info">
+                        <span class="user-status ${user.inCall ? 'busy' : ''}"></span>
+                        <span>${user.username}</span>
+                    </div>
+                    <div class="user-actions">
+                        <button class="call-button" onclick="callUser('${userId}')" 
+                                ${user.inCall || isInCall ? 'disabled' : ''}>
+                            通話
+                        </button>
+                        <button class="message-button" onclick="sendDirectMessage('${userId}')">
+                            メッセージ
+                        </button>
+                    </div>
+                `;
+                userListDiv.appendChild(userItem);
+            });
+            
+            // 音声通話ボタンの状態更新
+            const voiceCallButton = document.getElementById('voiceCallButton');
+            voiceCallButton.disabled = isInCall || users.size === 0;
+        }
+        
+        async function callUser(targetUserId) {
+            if (isInCall) return;
+            
+            isInCall = true;
+            ws.send(JSON.stringify({
+                type: 'callUser',
+                targetUserId: targetUserId
+            }));
+        }
+        
+        function startRandomCall() {
+            if (users.size === 0) {
+                alert('通話できるユーザーがいません');
+                return;
+            }
+            
+            const availableUsers = Array.from(users.entries()).filter(([id, user]) => !user.inCall);
+            if (availableUsers.length === 0) {
+                alert('現在通話可能なユーザーがいません');
+                return;
+            }
+            
+            const randomUser = availableUsers[Math.floor(Math.random() * availableUsers.length)];
+            callUser(randomUser[0]);
+        }
+        
+        function sendDirectMessage(targetUserId) {
+            const user = users.get(targetUserId);
+            if (user) {
+                const message = prompt(`${user.username} さんへのメッセージを入力してください:`);
+                if (message && message.trim()) {
+                    sendMessage(`@${user.username}: ${message.trim()}`);
+                }
+            }
+        }
+        
+        async function acceptCall() {
+            document.getElementById('incomingCallModal').classList.remove('active');
+            isInCall = true;
+            
+            ws.send(JSON.stringify({
+                type: 'acceptCall',
+                callerId: currentCallerId
+            }));
+            
+            await startPeerConnection(false);
+            showCallStatus();
+        }
+        
+        function rejectCall() {
+            document.getElementById('incomingCallModal').classList.remove('active');
+            
+            ws.send(JSON.stringify({
+                type: 'rejectCall',
+                callerId: currentCallerId
+            }));
+            
+            currentCallerId = null;
+        }
+        
+        async function startPeerConnection(isInitiator) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                
+                peerConnection = new RTCPeerConnection(iceServers);
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                peerConnection.ontrack = (event) => {
+                    const remoteAudio = document.getElementById('remoteAudio');
+                    remoteAudio.srcObject = event.streams[0];
+                };
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        ws.send(JSON.stringify({
+                            type: 'webrtcSignal',
+                            signal: {
+                                type: 'ice-candidate',
+                                candidate: event.candidate
+                            }
+                        }));
+                    }
+                };
+                
+                if (isInitiator) {
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'webrtcSignal',
+                        signal: {
+                            type: 'offer',
+                            offer: offer
+                        }
+                    }));
+                }
+                
+            } catch (error) {
+                console.error('Error starting peer connection:', error);
+                alert('マイクへのアクセスが拒否されました');
+                cleanupCall();
+            }
+        }
+        
+        async function handleWebRTCSignal(signal) {
+            if (!peerConnection) return;
+            
+            try {
+                if (signal.type === 'offer') {
+                    await peerConnection.setRemoteDescription(signal.offer);
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'webrtcSignal',
+                        signal: {
+                            type: 'answer',
+                            answer: answer
+                        }
+                    }));
+                } else if (signal.type === 'answer') {
+                    await peerConnection.setRemoteDescription(signal.answer);
+                } else if (signal.type === 'ice-candidate') {
+                    await peerConnection.addIceCandidate(signal.candidate);
+                }
+            } catch (error) {
+                console.error('Error handling WebRTC signal:', error);
+            }
+        }
+        
+        function showCallStatus() {
+            document.getElementById('callStatus').classList.add('active');
+            updateUserListUI();
+        }
+        
+        function endCall() {
+            ws.send(JSON.stringify({
+                type: 'endCall'
+            }));
+            
+            cleanupCall();
+            addSystemMessage('通話を終了しました');
+        }
+        
+        function cleanupCall() {
+            isInCall = false;
+            currentCallerId = null;
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            document.getElementById('remoteAudio').srcObject = null;
+            document.getElementById('callStatus').classList.remove('active');
+            document.getElementById('incomingCallModal').classList.remove('active');
+            
+            updateUserListUI();
+        }
+        
+        function sendMessage(messageText = null) {
+            const input = document.getElementById('messageInput');
+            const message = messageText || input.value.trim();
+            
+            if ((message || pendingFile) && ws && ws.readyState === WebSocket.OPEN) {
+                const messageData = {
+                    type: 'message',
+                    text: message || ''
+                };
+                
+                if (pendingFile) {
+                    messageData.fileId = pendingFile;
+                    messageData.fileType = pendingFileType;
+                    console.log('Sending file with message:', messageData.fileType);
+                    console.log('File ID:', messageData.fileId);
+                    pendingFile = null;
+                    pendingFileType = null;
+                }
+                
+                ws.send(JSON.stringify(messageData));
+                if (!messageText) {
+                    input.value = '';
+                }
+            }
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                alert('ファイルサイズは50MB以下にしてください');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    // ファイルをサーバーにアップロード
+                    const response = await fetch('http://localhost:3001/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            fileData: e.target.result,
+                            fileType: file.type
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const { fileId } = await response.json();
+                        pendingFile = fileId;
+                        pendingFileType = file.type;
+                        
+                        console.log('File uploaded:', file.name, 'ID:', fileId);
+                        
+                        if (file.type.startsWith('image/')) {
+                            sendMessage('画像を送信しました');
+                        } else if (file.type.startsWith('video/')) {
+                            sendMessage('動画を送信しました');
+                        } else if (file.type.startsWith('audio/')) {
+                            sendMessage('音声を送信しました');
+                        } else {
+                            sendMessage('ファイルを送信しました');
+                        }
+                    } else {
+                        alert('ファイルのアップロードに失敗しました');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('ファイルのアップロードに失敗しました');
+                }
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+        
+        function addMessage(text, sender, isReceived, fileData, fileType) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (isReceived ? 'received' : 'sent');
+            
+            const senderDiv = document.createElement('div');
+            senderDiv.className = 'message-sender';
+            senderDiv.textContent = sender;
+            
+            const textDiv = document.createElement('div');
+            textDiv.textContent = text;
+            
+            messageDiv.appendChild(senderDiv);
+            messageDiv.appendChild(textDiv);
+            
+            if (fileData && fileType) {
+                console.log('Adding media to message:', fileType);
+                console.log('File data exists in addMessage:', !!fileData);
+                const mediaDiv = document.createElement('div');
+                mediaDiv.className = 'message-media';
+                
+                const fileUrl = fileData.startsWith('data:') ? fileData : `http://localhost:3001/file/${fileData}`;
+                
+                if (fileType.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = fileUrl;
+                    img.alt = 'Shared image';
+                    img.loading = 'lazy';
+                    img.onerror = () => console.error('Failed to load image');
+                    img.onload = () => console.log('Image loaded successfully');
+                    mediaDiv.appendChild(img);
+                } else if (fileType.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = fileUrl;
+                    video.controls = true;
+                    video.preload = 'metadata';
+                    video.playsInline = true;
+                    video.onerror = () => console.error('Failed to load video');
+                    video.onloadedmetadata = () => console.log('Video metadata loaded');
+                    mediaDiv.appendChild(video);
+                } else if (fileType.startsWith('audio/')) {
+                    const audio = document.createElement('audio');
+                    audio.src = fileUrl;
+                    audio.controls = true;
+                    audio.preload = 'metadata';
+                    audio.onerror = () => console.error('Failed to load audio');
+                    audio.onloadedmetadata = () => console.log('Audio metadata loaded');
+                    mediaDiv.appendChild(audio);
+                }
+                
+                messageDiv.appendChild(mediaDiv);
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function addSystemMessage(text) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Enterキーで名前入力
+        document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startApp();
+            }
+        });
+        
+        // 音声録音機能
+        async function toggleVoiceRecording() {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.onload = async function(e) {
+                            try {
+                                const response = await fetch('http://localhost:3001/upload', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        fileData: e.target.result,
+                                        fileType: 'audio/webm'
+                                    })
+                                });
+                                
+                                if (response.ok) {
+                                    const { fileId } = await response.json();
+                                    pendingFile = fileId;
+                                    pendingFileType = 'audio/webm';
+                                    sendMessage('音声メッセージを送信しました');
+                                }
+                            } catch (error) {
+                                console.error('Upload error:', error);
+                            }
+                        };
+                        reader.readAsDataURL(audioBlob);
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    document.getElementById('voiceRecordButton').classList.add('recording');
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    alert('マイクへのアクセスが拒否されました');
+                }
+            } else {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    document.getElementById('voiceRecordButton').classList.remove('recording');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

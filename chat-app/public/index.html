@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チャットアプリ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-container" id="loginContainer">
+            <h2>チャットに参加</h2>
+            <input type="text" id="usernameInput" placeholder="ユーザー名を入力">
+            <button id="joinButton">参加</button>
+        </div>
+
+        <div class="chat-container" id="chatContainer" style="display: none;">
+            <div class="sidebar">
+                <h3>オンラインユーザー</h3>
+                <ul id="userList"></ul>
+            </div>
+            
+            <div class="main-chat">
+                <div class="chat-header">
+                    <h2>チャットルーム</h2>
+                    <span id="currentUser"></span>
+                </div>
+                
+                <div class="messages" id="messages"></div>
+                
+                <div class="input-area">
+                    <input type="text" id="messageInput" placeholder="メッセージを入力...">
+                    <button id="sendButton">送信</button>
+                    <button id="recordAudioButton">🎤 録音</button>
+                    <button id="recordVideoButton">📹 録画</button>
+                    <input type="file" id="fileInput" accept="audio/*,video/*" style="display: none;">
+                    <button id="uploadButton">📁 ファイル</button>
+                </div>
+                
+                <div class="recording-controls" id="recordingControls" style="display: none;">
+                    <span id="recordingStatus">録音中...</span>
+                    <button id="stopRecordingButton">停止</button>
+                    <span id="recordingTime">0:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
